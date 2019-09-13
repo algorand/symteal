@@ -57,7 +57,7 @@
 
 (struct intc_1 () #:transparent)
 
-(struct intc_2 () #:transaprent)
+(struct intc_2 () #:transparent)
 
 (struct intc_3 () #:transparent)
 
@@ -75,13 +75,13 @@
 
 (struct arg (index) #:transparent) ; push LogicSig.Args[index] value to stack
 
-(struct arg_0 #:transparent)
+(struct arg_0 () #:transparent)
 
-(struct arg_1 #:transparent)
+(struct arg_1 () #:transparent)
 
-(struct arg_2 #:transparent)
+(struct arg_2 () #:transparent)
 
-(struct arg_3 #:transparent)
+(struct arg_3 () #:transparent)
 
 (struct txn (index) #:transparent) ; push a field of current transaction to stack by index
 
@@ -93,6 +93,6 @@
 
 (struct bnz (offset) #:transparent) ; branch to offset of the value is not zero. offset itself is 3 bytes.
 
-(struct pop #:transparent) ;discard value from the stack
+(struct pop () #:transparent) ;discard value from the stack
 
-(struct dup #:transparent) ;duplicate last value on stack
+(struct dup () #:transparent) ;duplicate last value on stack
