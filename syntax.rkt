@@ -1,5 +1,7 @@
 #lang rosette 
 
+(provide (all-defined-out))
+
 ;;; Arithmetic
 
 (struct sha256 () #:transparent)
