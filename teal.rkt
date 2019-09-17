@@ -34,7 +34,17 @@
    (op-sepc "&" op-bitand '("Uint64" "Uint64") "Uint64")
    (op-spec "^" op-bitxor '("Uint64" "Uint64") "Uint64")
    (op-spec "~" op-bitnot '("Uint64") "Uint64")
-   
+
+   (op-spec "intcblock" op-intcblock '() "None")
+   (op-spec "intc" op-intc '() "Uint64")
+   (op-spec "bytecblock" op-bytecblock '() "None")
+   (op-spec "bytec" op-bytec '() "Bytes")
+   (op-spec "arg" op-arg '() "Bytes")
+   (op-spec "txn" op-txn '() "Any")
+   (op-spec "global" op-globle '() "Any")
+   (op-spec "bnz" op-bnz '("Uint64") "None")
+   (op-spec "pop" op-pop '("Any") "None")
+   (op-spec "dup" op-dup '() "Any")
              ))
 
 ;(define teal-eval-step (program context)
