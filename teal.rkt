@@ -1,19 +1,36 @@
-#lang rosette
+#lang rosette/safe
 
 ;;; TEAL interpreter in Rosette
 
-;; define the context, TODO: add type guard to the arguments.
-(struct context (stack program pc next_pc err intc bytec) #:transparent)
+;;; data structures
 
-;; stack element.
+; txn
+(struct txn
+  (sender fee first_valid l ast_valid
+   note receiver amount close_remainder_to
+   vote_pk selection_pk vote_first vote_last vote_key_dilution)
+  #:transparent)
+
+; gloable parameters
+(struct global
+  (max_txn_fee min_balance max_txn_life) #:transparent)
+
+; eval parameters
+(struct eval_params
+  (txn global args) #:transparent)
+
+; define the context, TODO: add type guard to the arguments.
+(struct context (eval_params stack program pc next_pc err intc bytec) #:transparent)
+
+; stack element.
 (struct stack-elmt (uint bytes) #:transparent)
 
-;; op-spec, roughly same as OpSpec in data/transaction/logic/eval.go.
+; op-spec, roughly same as OpSpec in data/transaction/logic/eval.go.
 (struct op-spec (name op args returntype) #:transparent)
 
-;; reflect the type of an stack element:
-;; 0 is uint.
-;; 1 is bytes.
+; reflect the type of an stack element:
+; 0 is uint.
+; 1 is bytes.
 (define (elmt-type e)
   (if (null? (stack-elmt-bytes e)) 1 0)) 
 
@@ -39,43 +56,26 @@
    (op-spec "!=" op-neq '("Any" "Any") "Uint64")
    (op-spec "!" op-not '("Uint64") "Uint64")
    (op-spec "len" op-len '("Bytes") "Uint64")
-   (op-spec "btoi" op-btoi '("Bytes") "Uint64")
-   (op-spec "%" op-mod '("Uint64" "Uint64") "Uint64")
-   (op-spec "|" op-bitor '("Uint64" "Uint64") "Uint64")
-   (op-sepc "&" op-bitand '("Uint64" "Uint64") "Uint64")
-   (op-spec "^" op-bitxor '("Uint64" "Uint64") "Uint64")
-   (op-spec "~" op-bitnot '("Uint64") "Uint64")
+   ;(op-spec "btoi" op-btoi '("Bytes") "Uint64")
+   ;(op-spec "%" op-mod '("Uint64" "Uint64") "Uint64")
+   ;(op-spec "|" op-bitor '("Uint64" "Uint64") "Uint64")
+   ;(op-sepc "&" op-bitand '("Uint64" "Uint64") "Uint64")
+   ;(op-spec "^" op-bitxor '("Uint64" "Uint64") "Uint64")
+   ;(op-spec "~" op-bitnot '("Uint64") "Uint64")
 
-   (op-spec "intcblock" op-intcblock '() "None")
-   (op-spec "intc" op-intc '() "Uint64")
-   (op-spec "bytecblock" op-bytecblock '() "None")
-   (op-spec "bytec" op-bytec '() "Bytes")
+   (op-spec "int") op-int '() "Uint64")
+
+   ;(op-spec "intcblock" op-intcblock '() "None")
+   ;(op-spec "intc" op-intc '() "Uint64")
+   ;(op-spec "bytecblock" op-bytecblock '() "None")
+   ;(op-spec "bytec" op-bytec '() "Bytes")
    (op-spec "arg" op-arg '() "Bytes")
    (op-spec "txn" op-txn '() "Any")
-   (op-spec "global" op-globle '() "Any")
-   (op-spec "bnz" op-bnz '("Uint64") "None")
-   (op-spec "pop" op-pop '("Any") "None")
-   (op-spec "dup" op-dup '() "Any")
-             ))
-
-; add an error message to the context.
-(define (add-err cxt msg)
-  (context (context-stack cxt)
-           (context-program cxt)
-           (context-pc cxt)
-           (context-next_pc cxt)
-           msg
-           (context-intc cxt)
-           (context-bytec cxt)))
-
-(define (update-stack cxt ns)
-  (context ns
-           (context-program cxt)
-           (context-pc cxt)
-           (context-next_pc cxt)
-           (context-err cxt)
-           (context-intc cxt)
-           (context-bytec cxt)))
+   ;(op-spec "global" op-globle '() "Any")
+   ;(op-spec "bnz" op-bnz '("Uint64") "None")
+   ;(op-spec "pop" op-pop '("Any") "None")
+   ;(op-spec "dup" op-dup '() "Any")
+   ))
 
 ;; helper functions:
 
@@ -94,6 +94,36 @@
 ; get the bytes from the second of the stack.
 (define (second-bytes cxt)
   (stack-elmt-bytes (car (cdr (context-stack cxt)))))
+
+; add an error message to the context.
+(define (add-err cxt msg)
+  (context (context-eval_params cxt)
+           (context-stack cxt)
+           (context-program cxt)
+           (context-pc cxt)
+           (context-next_pc cxt)
+           msg
+           (context-intc cxt)
+           (context-bytec cxt)))
+
+; update stack with a new stack value
+(define (update-stack cxt ns)
+  (context (context-eval_params cxt)
+           ns
+           (context-program cxt)
+           (context-pc cxt)
+           (context-next_pc cxt)
+           (context-err cxt)
+           (context-intc cxt)
+           (context-bytec cxt)))
+
+; push an int to a stack
+(define (push-int-stack cxt i)
+  (update-stack cxt (cons (stack-elmt i null) (context-stack cxt))))
+
+; push bytes to a stack
+(define (push-bytes-stack cxt b)
+  (update-stack cxt (cons (stack-elmt 0 b) (context-stack cxt))))
 
 ;; opcode semantics:
 
@@ -179,7 +209,7 @@
     (update-stack cxt (cons (stack-elmt r nil)
                             (cdr (cdr (context-stack cxt)))))))
 
-; eq
+; ==
 (define (op-eq cxt)
   (let ([ta (elmt-type (car (context-stack cxt)))]
         [tb (elmt-type (car (cdr (context-stack cxt))))])
@@ -199,6 +229,51 @@
             (op-comp cxt (lambda (a b) (not (= a b)))))
         (add-err "cannot compare values in different types"))))
 
+; !
+(define (op-not cxt)
+  (let ([a (top-uint cxt)])
+    (if (= a 0)
+        (update-stack cxt (cons (stack-elmt 1 null) (cdr (context-stack cxt)))))))
+
+; txn
+(define (op-txn cxt)
+  (let ([txn (eval_params-txn (context-eval_params cxt))]
+        [idx (list-ref (context-program cxt) (+ (context-pc cxt) 1))])
+    (match idx
+      [0 (push-bytes-stack (txn-sender txn))]
+      [1 (push-int-stack (txn-fee txn))]
+      [2 (push-int-stack (txn-first_valid txn))]
+      [3 (push-int-stack (txn-last_valid txn))]
+      [4 (push-bytes-stack (txn-note txn))]
+      [5 (push-bytes-stack (txn-receiver txn))]
+      [6 (push-int-stack (txn-amount txn))]
+      [7 (push-bytes-stack (txn-close_remainder_to txn))]
+      [8 (push-bytes-stack (txn-vote_pk txn))]
+      [9 (push-bytes-stack (txn-selection_pk txn))]
+      [10 (push-int-stack (txn-vote_first txn))]
+      [11 (push-int-stack (txn-vote_last txn))]
+      [12 (push-int-stack (txn-vote_key_dilution txn))]
+      [_ (add-err cxt (string-append "invalid txn field " (number->string idx)))]
+      )))
+
+
+; len 
+(define (op-len cxt)
+  (let [bytes (top-bytes cxt)]
+    (update-stack cxt (cons (stack-elmt (length bytes) null) (rest (context-stack cxt))))))
+  
+; byte
+; note: byte is not an actual opcode, the assembler will compile it to
+; bytcblock, bytec
+;(define (op-byte cxt)
+
+
+; arg
+(define (op-arg cxt)
+  (let ([args (eval_params-args (context-eval_params cxt))]
+        [idx (list-ref (context-program cxt) (+ (context-pc cxt) 1))])
+    (update-stack cxt (cons (stack-elmt 0 (eval_params-args (context-eval_params cxt)))
+                            (cdr (context-stack cxt))))))
 
 ;(define teal-eval-step (program context) nil)
 

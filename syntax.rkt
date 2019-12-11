@@ -1,4 +1,4 @@
-#lang rosette 
+#lang rosette/safe 
 
 (provide (all-defined-out))
 
