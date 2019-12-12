@@ -36,54 +36,14 @@
 
 (struct neq () #:transparent)
 
-(struct ! () #:transparent)
-
 (struct len () #:transparent)
-
-(struct btoi () #:transparent)
 
 (struct % () #:transparent)
 
-(struct bor () #:transparent)
-
-(struct band () #:transparent)
-
-(struct xor () #:transparent)
-
-(struct ~ () #:transparent)
-
 ;;; Loading values
-(struct intcblock () #:transparent) ; pushes uint64 constant to unit constants heap 
-
-(struct intc () #:transparent) ; intc is followed by a uint, index of the to-be-loaded value in intcblock 
-
-(struct intc_1 () #:transparent)
-
-(struct intc_2 () #:transparent)
-
-(struct intc_3 () #:transparent)
-
-(struct intc_4 () #:transparent)
-
-(struct bytec () #:transparent)
-
-(struct bytec_0 () #:transparent)
-
-(struct bytec_1 () #:transparent)
-
-(struct bytec_2 () #:transparent)
-
-(struct bytec_3 () #:transparent)
+(struct int (value) #:transparent) ; pushes uint64 constant to unit constants heap 
 
 (struct arg (index) #:transparent) ; push LogicSig.Args[index] value to stack
-
-(struct arg_0 () #:transparent)
-
-(struct arg_1 () #:transparent)
-
-(struct arg_2 () #:transparent)
-
-(struct arg_3 () #:transparent)
 
 (struct txn (index) #:transparent) ; push a field of current transaction to stack by index
 

@@ -6,9 +6,11 @@
 
 ; txn
 (struct txn
-  (sender fee first_valid l ast_valid
-   note receiver amount close_remainder_to
-   vote_pk selection_pk vote_first vote_last vote_key_dilution)
+  (sender fee first_valid first_valid_time last_valid
+   note lease receiver amount close_remainder_to
+   vote_pk selection_pk vote_first vote_last vote_key_dilution
+   type type_enum xfer_asset asset_amount asset_sender asset_receiver
+   asset_close_to group_index tx_id)
   #:transparent)
 
 ; gloable parameters
@@ -63,7 +65,7 @@
    ;(op-spec "^" op-bitxor '("Uint64" "Uint64") "Uint64")
    ;(op-spec "~" op-bitnot '("Uint64") "Uint64")
 
-   (op-spec "int") op-int '() "Uint64")
+   (op-spec "int" op-int '() "Uint64")
 
    ;(op-spec "intcblock" op-intcblock '() "None")
    ;(op-spec "intc" op-intc '() "Uint64")
