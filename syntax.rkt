@@ -18,21 +18,21 @@
 
 (struct divide () #:transparent)
 
-(struct time () #:transparent)
+(struct mul () #:transparent)
 
-(struct gt () #:transparent)
+(struct gt () #:transparent) ; >
 
-(struct lt () #:transparent)
+(struct lt () #:transparent) ; <
 
-(struct gte () #:transparent)
+(struct ge () #:transparent) ; >=
 
-(struct lte () #:transparent)
+(struct le () #:transparent) ; <=
 
-(struct land () #:transparent)
+(struct land () #:transparent) ; &&
 
-(struct lor () #:transparent)
+(struct lor () #:transparent) ; ||
 
-(struct eq () #:transparent)
+(struct eq () #:transparent) ; ==
 
 (struct neq () #:transparent)
 
@@ -41,11 +41,17 @@
 (struct % () #:transparent)
 
 ;;; Loading values
-(struct int (value) #:transparent) ; pushes uint64 constant to unit constants heap 
+(struct int (value) #:transparent) ; pushes uint64 constant to unit constants heap
+
+(struct byte (value) #:transparent) ; pushed bytes into bytes heap
+
+(struct addr (value) #:transparent) ; pushes address bytes to stack
 
 (struct arg (index) #:transparent) ; push LogicSig.Args[index] value to stack
 
-(struct txn (index) #:transparent) ; push a field of current transaction to stack by index
+(struct txn (field) #:transparent) ; push a field of current transaction to stack
+
+(struct gtxn (index field) #:transparent) ; push a field of group txn at index to stack
 
 (struct global (index) #:transparent) ; push a field from global context to stack by index
 
