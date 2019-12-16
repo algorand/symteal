@@ -1,5 +1,8 @@
 #lang rosette/safe
 
+(require rosette/lib/match)
+(require "syntax.rkt")
+
 ;;; TEAL interpreter in Rosette
 
 ;;; data structures
@@ -35,47 +38,6 @@
 
 (define uint64-max 18446744073709551615)
 
-(define ops
-  (list
-   (op-spec "err" op-err null "None")
-   ;(op-spec "sha256" op-sha256 '("Bytes") "Bytes")
-   (op-spec "keccak256" op-keccak256 '("Bytes") "Bytes")
-   ;(op-spec "ed25519verify" op-ed25519verify '("Bytes" "Bytes" "Bytes") "Uint64")
-   (op-spec "+" op-plus '("Uint64" "Uint64") "Uint64")
-   (op-spec "-" op-minus '("Uint64" "Uint64") "Uint64")
-   (op-spec "/" op-div '("Uint64" "Uint64") "Uint64")
-   (op-spec "*" op-mul '("Uint64" "Uint64") "Uint64")
-   (op-spec ">" op-gt '("Uint64" "Uint64") "Uint64")
-   (op-spec "<" op-lt '("Uint64" "Uint64") "Uint64")
-   (op-spec ">=" op-ge '("Uint64" "Uint64") "Uint64")
-   (op-spec "<=" op-le '("Uint64" "Uint64") "Uint64")
-   (op-spec "&&" op-and '("Uint64" "Uint64") "Uint64")
-   (op-spec "||" op-or '("Uint64" "Uint64") "Uint64")
-   (op-spec "==" op-eq '("Any" "Any") "Uint64")
-   (op-spec "!=" op-neq '("Any" "Any") "Uint64")
-   (op-spec "!" op-not '("Uint64") "Uint64")
-   (op-spec "len" op-len '("Bytes") "Uint64")
-   ;(op-spec "btoi" op-btoi '("Bytes") "Uint64")
-   ;(op-spec "%" op-mod '("Uint64" "Uint64") "Uint64")
-   ;(op-spec "|" op-bitor '("Uint64" "Uint64") "Uint64")
-   ;(op-sepc "&" op-bitand '("Uint64" "Uint64") "Uint64")
-   ;(op-spec "^" op-bitxor '("Uint64" "Uint64") "Uint64")
-   ;(op-spec "~" op-bitnot '("Uint64") "Uint64")
-
-   (op-spec "int" op-int '() "Uint64")
-
-   ;(op-spec "intcblock" op-intcblock '() "None")
-   ;(op-spec "intc" op-intc '() "Uint64")
-   ;(op-spec "bytecblock" op-bytecblock '() "None")
-   ;(op-spec "bytec" op-bytec '() "Bytes")
-   (op-spec "arg" op-arg '() "Bytes")
-   (op-spec "txn" op-txn '() "Any")
-   ;(op-spec "global" op-globle '() "Any")
-   ;(op-spec "bnz" op-bnz '("Uint64") "None")
-   ;(op-spec "pop" op-pop '("Any") "None")
-   ;(op-spec "dup" op-dup '() "Any")
-   ))
-
 ;; helper functions:
 
 ; get the top element of the stack and make sure it is uint
@@ -83,28 +45,28 @@
   (let ([top-elmt (car (context-stack cxt))])
     (if (equal? (stack-elmt-type top-elmt) 0)
         (stack-elmt-value top-elmt)
-        (error 'type-error-expected-uint))))
+        (teal-error "type-error-expected-uint"))))
 
 ; get the second element of the stack and make sure it is uint
 (define (second-uint cxt)
   (let ([second-elmt (car (cdr (context-stack cxt)))])
     (if (equal? (stack-elmt-type second-elmt) 0)
         (stack-elmt-value second-elmt)
-        (error 'type-error-expected-uint))))
+        (teal-error "type-error-expected-uint"))))
 
 ; get the top element of the stack and make sure it is bytes
 (define (top-bytes cxt)
   (let ([top-elmt (car (context-stack cxt))])
     (if (equal? (stack-elmt-type top-elmt) 1)
         (stack-elmt-value top-elmt)
-        (error 'type-error-expected-uint))))
+        (teal-error "type-error-expected-uint"))))
 
 ; get the second element of the stack and make sure it is bytes
 (define (second-bytes cxt)
   (let ([second-elmt (car (cdr (context-stack cxt)))])
     (if (equal? (stack-elmt-type second-elmt) 1)
         (stack-elmt-value second-elmt)
-        (error 'type-error-expected-uint))))
+        (teal-error "type-error-expected-uint"))))
 
 ; add an error message to the context.
 (define (add-err cxt msg)
@@ -113,9 +75,7 @@
            (context-program cxt)
            (context-pc cxt)
            (context-next_pc cxt)
-           msg
-           (context-intc cxt)
-           (context-bytec cxt)))
+           msg))
 
 ; update stack with a new stack value
 (define (update-stack cxt ns)
@@ -124,9 +84,7 @@
            (context-program cxt)
            (context-pc cxt)
            (context-next_pc cxt)
-           (context-err cxt)
-           (context-intc cxt)
-           (context-bytec cxt)))
+           (context-err cxt)))
 
 ; push an int to a stack
 (define (push-int cxt i)
@@ -155,43 +113,63 @@
 ; TODO: definition.
 (define (op-ed25519verify cxt) cxt)
 
+(define (int-op cxt op)
+  (let ([a (second-uint cxt)]
+        [b (top-uint cxt)])
+    (match a
+      [(teal-error msg) (add-err cxt msg)]
+      [va (match b
+            [(teal-error msg) (add-err cxt msg)]
+            [vb (op cxt va vb)])])))
+
 ; +
 (define (op-plus cxt)
-  (let ([r (+ (second-uint cxt) (top-uint cxt))])
-    (if (> r uint64-max)
-        (add-err cxt "+ overflow")
-        (update-stack cxt (cons (stack-elmt r 0)
-                                (cdr (cdr (context-stack cxt))))))))
+  (let ([op (lambda (cxt a b)
+              (let ([r (+ a b)])
+                (if (> r max-uint)
+                    (add-err cxt "+ overflow")
+                    (update-stack cxt (cons (stack-elmt r 0)
+                                            (cdr (cdr (context-stack cxt))))))))])
+    (int-op cxt op)))
 
 ; -
 (define (op-minus cxt)
-  (let ([r (- (second-uint cxt) (top-uint cxt))])
-    (if (< r 0)
-        (add-err cxt "- would result negative")
-        (update-stack cxt (cons (stack-elmt r 0)
-                                (cdr (cdr (context-stack cxt))))))))
+  (let ([op (lambda (cxt a b)
+              (if (< (- a b) 0)
+                    (add-err cxt "- would result negative")
+                    (update-stack cxt (cons (stack-elmt (- a b) 0)
+                                            (cdr (cdr (context-stack cxt)))))))])
+    (int-op cxt op)))
 
 ; /
 (define (op-div cxt)
-  (if (= (top-uint cxt) 0)
-      (add-err cxt "/ 0")
-      (let ([r (/ (second-uint cxt) (top-uint cxt))])
-        (update-stack cxt (cons (stack-elmt r 0)
-                                (cdr (cdr (context-stack cxt))))))))
+  (let ([op (lambda (cxt a b)
+              (if (= b 0)
+                  (add-err cxt "divided by 0")      
+                  (update-stack cxt (cons (stack-elmt (/ a b) 0)
+                                          (cdr (cdr (context-stack cxt)))))))])
+    (int-op cxt op)))
 
 ; *
 (define (op-mul cxt)
-  (let ([r (* (top-uint cxt) (second-uint cxt))])
-    (if (> r uint64-max)
-        (add-err cxt "* overflow")
-        (update-stack cxt (cons (stack-elmt r 0)
-                                (cdr (cdr (context-stack cxt))))))))
+  (let ([op (lambda (cxt a b)
+              (if (> (* a b) uint-max)
+                  (add-err cxt "* overlflow")
+                  (update-stack cxt (cons (stack-elmt (* a b) 0)
+                                          (cdr (cdr (context-stack cxt)))))))])
+    (int-op cxt op)))
 
 ; compare two numbers
 (define (int-comp cxt op)
-  (let ([r (if (op (second-uint cxt) (top-uint cxt)) 1 0)])
-    (update-stack cxt (cons (stack-elmt r 0)
-                            (cdr (cdr (context-stack cxt)))))))
+  (let ([a (second-uint cxt)]
+        [b (top-uint cxt)])
+    (match a
+      [(teal-error msg) (add-err cxt msg)]
+      [va (match b
+            [(teal-error msg) (add-err cxt msg)]
+            [vb (let ([r (if (op va vb) 1 0)])
+                  (update-stack cxt (cons (stack-elmt r 0)
+                                          (cdr (cdr (context-stack cxt))))))])])))
 
 ; >
 (define (op-gt cxt)
@@ -220,9 +198,15 @@
 
 ; compare bytes
 (define (bytes-comp cxt op)
-  (let ([r (if (op (second-bytes cxt) (top-bytes cxt)) 1 0)])
+  (let ([a (second-bytes cxt)]
+        [b (top-bytes cxt)])
+    (match a
+      [(teal-error msg) (add-err cxt msg)]
+      [va (match b
+            [(teal-error msg) (add-err cxt msg)]
+            [vb (let ([r (if (op va vb) 1 0)])
     (update-stack cxt (cons (stack-elmt r 1)
-                            (cdr (cdr (context-stack cxt)))))))
+                            (cdr (cdr (context-stack cxt))))))])])))
 
 ; ==
 (define (op-eq cxt)
@@ -236,8 +220,8 @@
 
 ; neq
 (define (op-neq cxt)
-  (let ([ta (elmt-type (car (context-stack cxt)))]
-        [tb (elmt-type (car (cdr (context-stack cxt))))])
+  (let ([ta (stack-elmt-type (car (context-stack cxt)))]
+        [tb (stack-elmt-type (car (cdr (context-stack cxt))))])
     (if (= ta tb)
         (if (= ta 1)
             (bytes-comp cxt (lambda (a b) (not (bveq a b))))
@@ -248,7 +232,10 @@
 (define (op-not cxt)
   (let ([a (top-uint cxt)])
     (if (= a 0)
-        (update-stack cxt (cons (stack-elmt 1 0) (cdr (context-stack cxt)))))))
+        (update-stack cxt
+                      (cons (stack-elmt 1 0) (cdr (context-stack cxt))))
+        (update-stack cxt
+                      (cons (stack-elmt 0 0) (cdr (context-stack cxt)))))))
 
 ; txn
 (define (op-txn cxt idx)
@@ -285,7 +272,12 @@
 ; byte
 ; note: byte is not an actual opcode, the assembler will compile it to
 ; bytcblock, bytec
-;(define (op-byte cxt)
+(define (op-byte cxt value)
+  (push-bytes cxt value))
+
+; addr
+(define (op-addr cxt value)
+  (push-bytes cxt value))
 
 
 ; arg
@@ -294,6 +286,45 @@
         [idx (list-ref (context-program cxt) (+ (context-pc cxt) 1))])
     (update-stack cxt (cons (stack-elmt 0 (eval_params-args (context-eval_params cxt)))
                             (cdr (context-stack cxt))))))
+
+(define ops
+  (list
+   (op-spec "err" op-err null "None")
+   ;(op-spec "sha256" op-sha256 '("Bytes") "Bytes")
+   (op-spec "keccak256" op-keccak256 '("Bytes") "Bytes")
+   ;(op-spec "ed25519verify" op-ed25519verify '("Bytes" "Bytes" "Bytes") "Uint64")
+   (op-spec "+" op-plus '("Uint64" "Uint64") "Uint64")
+   (op-spec "-" op-minus '("Uint64" "Uint64") "Uint64")
+   (op-spec "/" op-div '("Uint64" "Uint64") "Uint64")
+   (op-spec "*" op-mul '("Uint64" "Uint64") "Uint64")
+   (op-spec ">" op-gt '("Uint64" "Uint64") "Uint64")
+   (op-spec "<" op-lt '("Uint64" "Uint64") "Uint64")
+   (op-spec ">=" op-ge '("Uint64" "Uint64") "Uint64")
+   (op-spec "<=" op-le '("Uint64" "Uint64") "Uint64")
+   (op-spec "&&" op-and '("Uint64" "Uint64") "Uint64")
+   (op-spec "||" op-or '("Uint64" "Uint64") "Uint64")
+   (op-spec "==" op-eq '("Any" "Any") "Uint64")
+   (op-spec "!=" op-neq '("Any" "Any") "Uint64")
+   (op-spec "!" op-not '("Uint64") "Uint64")
+   ;(op-spec "len" op-len '("Bytes") "Uint64")
+   ;(op-spec "btoi" op-btoi '("Bytes") "Uint64")
+   ;(op-spec "%" op-mod '("Uint64" "Uint64") "Uint64")
+   ;(op-spec "|" op-bitor '("Uint64" "Uint64") "Uint64")
+   ;(op-sepc "&" op-bitand '("Uint64" "Uint64") "Uint64")
+   ;(op-spec "^" op-bitxor '("Uint64" "Uint64") "Uint64")
+   ;(op-spec "~" op-bitnot '("Uint64") "Uint64")
+
+   (op-spec "int" op-int '() "Uint64")
+   (op-spec "arg" op-arg '() "Bytes")
+   (op-spec "txn" op-txn '() "Any")
+   (op-spec "byte" op-byte '() "Bytes")
+   (op-spec "addr" op-addr '() "Bytes")
+   ;(op-spec "global" op-globle '() "Any")
+   ;(op-spec "bnz" op-bnz '("Uint64") "None")
+   ;(op-spec "pop" op-pop '("Any") "None")
+   ;(op-spec "dup" op-dup '() "Any")
+   ))
+
 
 ;(define teal-eval-step (program context) nil)
 

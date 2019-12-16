@@ -64,3 +64,6 @@
 (struct pop () #:transparent) ;discard value from the stack
 
 (struct dup () #:transparent) ;duplicate last value on stack
+
+;;; Error
+(struct teal-error (msg) #:transparent) ; this is not part of syntax
