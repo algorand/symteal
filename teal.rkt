@@ -3,7 +3,7 @@
 (require rosette/lib/match)
 (require "syntax.rkt")
 
-(provide txn-content global eval_params context keccak256-hash teal-eval) 
+(provide (all-from-out "syntax.rkt") txn-content global-params eval-params context keccak256-hash teal-eval) 
 
 ;;; TEAL interpreter in Rosette
 
@@ -18,16 +18,16 @@
    asset_close_to group_index tx_id)
   #:transparent)
 
-; gloable parameters
-(struct global
-  (max_txn_fee min_balance max_txn_life zero_address group_size) #:transparent)
+; global parameters
+(struct global-params
+  (min_txn_fee min_balance max_txn_life zero_address group_size) #:transparent)
 
 ; eval parameters
-(struct eval_params
+(struct eval-params
   (txn global args) #:transparent)
 
 ; define the context, TODO: add type guard to the arguments.
-(struct context (eval_params stack program pc err) #:transparent)
+(struct context (eval-params stack program pc err) #:transparent)
 
 ; stack element.
 ; type of stack element
@@ -45,32 +45,32 @@
   (let ([top-elmt (car (context-stack cxt))])
     (if (equal? (stack-elmt-type top-elmt) 0)
         (stack-elmt-value top-elmt)
-        (teal-error "type-error-expected-uint"))))
+        (teal-error 1)))) ; error-code 1: type-error-expected-uint
 
 ; get the second element of the stack and make sure it is uint
 (define (second-uint cxt)
   (let ([second-elmt (car (cdr (context-stack cxt)))])
     (if (equal? (stack-elmt-type second-elmt) 0)
         (stack-elmt-value second-elmt)
-        (teal-error "type-error-expected-uint"))))
+        (teal-error 1)))) ; error-code 1: type-error-expected-uint
 
 ; get the top element of the stack and make sure it is bytes
 (define (top-bytes cxt)
   (let ([top-elmt (car (context-stack cxt))])
     (if (equal? (stack-elmt-type top-elmt) 1)
         (stack-elmt-value top-elmt)
-        (teal-error "type-error-expected-uint"))))
+        (teal-error 2)))) ; error-code 2: type-error-expected-bytes
 
 ; get the second element of the stack and make sure it is bytes
 (define (second-bytes cxt)
   (let ([second-elmt (car (cdr (context-stack cxt)))])
     (if (equal? (stack-elmt-type second-elmt) 1)
         (stack-elmt-value second-elmt)
-        (teal-error "type-error-expected-uint"))))
+        (teal-error 2)))) ; error-code 2: type-error-expected-bytes
 
 ; add an error message to the context.
 (define (add-err cxt msg)
-  (context (context-eval_params cxt)
+  (context (context-eval-params cxt)
            (context-stack cxt)
            (context-program cxt)
            (context-pc cxt)
@@ -78,7 +78,7 @@
 
 ; update stack with a new stack value
 (define (update-stack cxt ns)
-  (context (context-eval_params cxt)
+  (context (context-eval-params cxt)
            ns
            (context-program cxt)
            (context-pc cxt)
@@ -100,7 +100,7 @@
 
 ; err.
 (define (op-err cxt)
-  (add-err cxt "error"))
+  (add-err cxt 3)) ; error-code 3: error
 
 (define-symbolic keccak256-hash (~> integer? integer?))
 
@@ -126,7 +126,7 @@
   (let ([op (lambda (cxt a b)
               (let ([r (+ a b)])
                 (if (> r uint64-max)
-                    (add-err cxt "+ overflow")
+                    (add-err cxt 4) ; error-code 4: + overflow
                     (update-stack cxt (cons (stack-elmt r 0)
                                             (cdr (cdr (context-stack cxt))))))))])
     (int-op cxt op)))
@@ -135,7 +135,7 @@
 (define (op-minus cxt)
   (let ([op (lambda (cxt a b)
               (if (< (- a b) 0)
-                    (add-err cxt "- would result negative")
+                    (add-err cxt 5) ; error-code 5: - results negative
                     (update-stack cxt (cons (stack-elmt (- a b) 0)
                                             (cdr (cdr (context-stack cxt)))))))])
     (int-op cxt op)))
@@ -144,7 +144,7 @@
 (define (op-div cxt)
   (let ([op (lambda (cxt a b)
               (if (= b 0)
-                  (add-err cxt "divided by 0")      
+                  (add-err cxt 6) ; error-code 6: divided by 0      
                   (update-stack cxt (cons (stack-elmt (/ a b) 0)
                                           (cdr (cdr (context-stack cxt)))))))])
     (int-op cxt op)))
@@ -153,7 +153,7 @@
 (define (op-mul cxt)
   (let ([op (lambda (cxt a b)
               (if (> (* a b) uint64-max)
-                  (add-err cxt "* overlflow")
+                  (add-err cxt 7) ; error-code 7: * overlflow
                   (update-stack cxt (cons (stack-elmt (* a b) 0)
                                           (cdr (cdr (context-stack cxt)))))))])
     (int-op cxt op)))
@@ -215,7 +215,7 @@
         (if (= ta 1)
             (bytes-comp cxt =)
             (int-comp cxt =))
-        (add-err "cannot compare values in different types"))))
+        (add-err cxt 8)))) ; error-code 8: compare values in different types
 
 ; neq
 (define (op-neq cxt)
@@ -225,7 +225,7 @@
         (if (= ta 1)
             (bytes-comp cxt (lambda (a b) (not (bveq a b))))
             (int-comp cxt (lambda (a b) (not (= a b)))))
-        (add-err "cannot compare values in different types"))))
+        (add-err cxt 8)))) ; error-code 8: compare values in different types
 
 ; !
 (define (op-not cxt)
@@ -240,7 +240,7 @@
 
 ; txn
 (define (op-txn cxt idx)
-  (let ([txn (eval_params-txn (context-eval_params cxt))])
+  (let ([txn (eval-params-txn (context-eval-params cxt))])
     (match idx
       [0 (push-bytes cxt (txn-content-sender txn))]
       [1 (push-int cxt (txn-content-fee txn))]
@@ -266,7 +266,7 @@
       [21 (push-bytes cxt (txn-content-asset_close_to txn))]
       [22 (push-int cxt (txn-content-group_index txn))]
       [23 (push-bytes cxt (txn-content-tx_id txn))]
-      [_ (add-err cxt "invalid txn field")]
+      [_ (add-err cxt 9)] ; error-code 9: invalid txn field
       )))
 
   
@@ -282,12 +282,22 @@
 
 ; arg
 (define (op-arg cxt index)
-  (let ([args (eval_params-args (context-eval_params cxt))])
-    (push-bytes cxt (list-ref (eval_params-args (context-eval_params cxt)) index))))          
+  (let ([args (eval-params-args (context-eval-params cxt))])
+    (push-bytes cxt (list-ref (eval-params-args (context-eval-params cxt)) index))))          
 
+; global
+(define (op-global cxt idx)
+  (let ([global (eval-params-global (context-eval-params cxt))])
+    (match idx
+      [0 (push-int cxt (global-params-min_txn_fee global))]
+      [1 (push-int cxt (global-params-min_balance global))]
+      [2 (push-int cxt (global-params-max_txn_life global))]
+      [3 (push-bytes cxt (global-params-zero_address global))]
+      [4 (push-int cxt (global-params-group_size global))]))) 
+ 
 ; update pc
 (define (update-pc cxt new-pc)
-  (context (context-eval_params cxt)
+  (context (context-eval-params cxt)
            (context-stack cxt)
            (context-program cxt)
            new-pc
@@ -307,7 +317,7 @@
            (pc-increment (update-stack cxt (cdr (context-stack cxt)))) ;pop if zero
            (let ([new-pc (+ (context-pc cxt) offset)])
              (if (>= new-pc (len (context-program cxt)))
-                 (add-err cxt "bnz offset out of range")
+                 (add-err cxt 10) ; error-code 10: bnz offset out of range
                  (update-pc (update-stack cxt (cdr (context-stack cxt))) new-pc)))
            )])))
 
@@ -338,6 +348,7 @@
    (op-spec "txn" op-txn '() "Any")
    (op-spec "byte" op-byte '() "Bytes")
    (op-spec "addr" op-addr '() "Bytes")
+   (op-spec "global" op-global '() "Any")
    ))  
 
 ; teal eval step
@@ -346,10 +357,10 @@
 (define (eval-step cxt)
   (cond
     ; return cxt if all instructions has been executed
-    [(= (context-pc cxt) (len (context-program cxt))) cxt]
-    [(not (= (context-err cxt) "")) cxt]
+    [(= (context-pc cxt) (length (context-program cxt))) cxt]
+    [(not (= (context-err cxt) 0)) cxt]
     [else
-     (let ([op (list-ref (context-program) (context-pc cxt))])
+     (let ([op (list-ref (context-program cxt) (context-pc cxt))])
        (match op
          [(keccak256) (eval-step (pc-increment (op-keccak256 cxt)))]
          [(err) (op-err cxt)] ; return now, no need recursion
@@ -364,21 +375,22 @@
          [(lor) (eval-step (pc-increment (op-or cxt)))]
          [(eq) (eval-step (pc-increment (op-eq cxt)))]
          [(neq) (eval-step (pc-increment (op-neq cxt)))]
-         [(not) (eval-step (pc-increment (op-div cxt)))]
+         [(lnot) (eval-step (pc-increment (op-not cxt)))]
          [(int value) (eval-step (pc-increment (op-int cxt value)))]
          [(byte value) (eval-step (pc-increment (op-byte cxt value)))]
          [(addr value) (eval-step (pc-increment (op-addr cxt value)))]
          [(txn field) (eval-step (pc-increment (op-txn cxt field)))]
-         [(arg index) (eval-step (pc-increment (op-arg cxt index)))]))]))
+         [(arg index) (eval-step (pc-increment (op-arg cxt index)))]
+         [(global index) (eval-step (pc-increment (op-global cxt index)))]))]))
 
 
 ; teal eval
 (define (teal-eval cxt)
   (let ([result (eval-step cxt)])
     (cond
-      [(not (= (context-err result) "")) #f]
-      [(> (len (context-stack result)) 1) #f]
-      [(= (len (context-stack result)) 0) #f]
+      [(not (= (context-err result) 0)) #f]
+      [(> (length (context-stack result)) 1) #f]
+      [(= (length (context-stack result)) 0) #f]
       [(= (stack-elmt-type (car (context-stack result))) 1) #f]
       [(> (stack-elmt-value (car (context-stack result))) 0) #t]
       [else #f])))

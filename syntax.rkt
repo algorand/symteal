@@ -1,14 +1,15 @@
-#lang rosette/safe 
+#lang rosette/safe
 
+(require rosette/lib/match)
 (provide (all-defined-out))
 
 ;;; Arithmetic
 
-(struct sha256 () #:transparent)
+(struct sha256 () #:transparent) ; not supported yet
 
 (struct keccak256 () #:transparent)
 
-(struct sha512_256 () #:transparent)
+(struct sha512_256 () #:transparent) ; not supported yet
 
 (struct ed25519verify () #:transparent)
 
@@ -36,7 +37,7 @@
 
 (struct neq () #:transparent) ; !=
 
-(struct not () #:transparent)
+(struct lnot () #:transparent)
 
 (struct len () #:transparent)
 
@@ -68,4 +69,22 @@
 (struct dup () #:transparent) ;duplicate last value on stack
 
 ;;; Error
+
 (struct teal-error (msg) #:transparent) ; this is not part of syntax
+
+; decode error code to error message
+(define (decode-error error-code)
+  (match error-code
+    [1 "type-error-expected-uint"]
+    [2 "type-error-expected-bytes"]
+    [3 "error"]
+    [4 "+ overflow"]
+    [5 "- results negative"]
+    [6 "divided by 0"]
+    [7 "* overlflow"]
+    [8 "compare values in different types"]
+    [9 "invalid txn field"]
+    [10 "bnz offset out of range"]))
+    
+    
+  

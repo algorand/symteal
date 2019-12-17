@@ -1,6 +1,6 @@
 #lang rosette/safe
 
-(require "syntax.rkt")
+(require "teal.rkt")
 
 ;  define template variables
 ;  - tmpl_rcv: the address to send funds to when the preimage is supplied
@@ -8,7 +8,8 @@
 
 ;  - TMPL_HASHFN (Deprecated): the specific hash function (either sha256 or keccak256) to apply
 ;  - tmpl_hashimg: the image of the hash function
-(define tmpl_hashimg 42)
+(define tmpl_hashimg
+  (keccak256-hash 42))
 
 ;  - tmpl_timeout: the round at which the account expires
 (define tmpl_timeout 500)
@@ -53,3 +54,15 @@
    (lor)
    (land)
    ))
+
+(define mock-txn-content
+  (txn-content 50 1000 1000 0 5000 0 0 22 5000 22 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
+
+(define mock-global-params
+  (global-params 1000 1000 2000 0 1))
+
+(define mock-eval-params
+  (eval-params mock-txn-content mock-global-params (list (keccak256-hash 42))))
+
+(define mock-cxt
+  (context mock-eval-params (list) hltc-contract 0 0))
