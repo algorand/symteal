@@ -126,7 +126,7 @@
 (define (op-plus cxt)
   (let ([op (lambda (cxt a b)
               (let ([r (+ a b)])
-                (if (> r max-uint)
+                (if (> r uint64-max)
                     (add-err cxt "+ overflow")
                     (update-stack cxt (cons (stack-elmt r 0)
                                             (cdr (cdr (context-stack cxt))))))))])
@@ -153,7 +153,7 @@
 ; *
 (define (op-mul cxt)
   (let ([op (lambda (cxt a b)
-              (if (> (* a b) uint-max)
+              (if (> (* a b) uint64-max)
                   (add-err cxt "* overlflow")
                   (update-stack cxt (cons (stack-elmt (* a b) 0)
                                           (cdr (cdr (context-stack cxt)))))))])
@@ -265,7 +265,7 @@
       [21 (push-bytes cxt (txn-asset_close_to txn))]
       [22 (push-int cxt (txn-group_index txn))]
       [23 (push-bytes cxt (txn-tx_id txn))]
-      [_ (add-err cxt (string-append "invalid txn field " (number->string idx)))]
+      [_ (add-err cxt "invalid txn field")]
       )))
 
   
@@ -287,12 +287,11 @@
     (update-stack cxt (cons (stack-elmt 0 (eval_params-args (context-eval_params cxt)))
                             (cdr (context-stack cxt))))))
 
+; this is a list of currently supported ops
 (define ops
   (list
    (op-spec "err" op-err null "None")
-   ;(op-spec "sha256" op-sha256 '("Bytes") "Bytes")
    (op-spec "keccak256" op-keccak256 '("Bytes") "Bytes")
-   ;(op-spec "ed25519verify" op-ed25519verify '("Bytes" "Bytes" "Bytes") "Uint64")
    (op-spec "+" op-plus '("Uint64" "Uint64") "Uint64")
    (op-spec "-" op-minus '("Uint64" "Uint64") "Uint64")
    (op-spec "/" op-div '("Uint64" "Uint64") "Uint64")
@@ -306,23 +305,11 @@
    (op-spec "==" op-eq '("Any" "Any") "Uint64")
    (op-spec "!=" op-neq '("Any" "Any") "Uint64")
    (op-spec "!" op-not '("Uint64") "Uint64")
-   ;(op-spec "len" op-len '("Bytes") "Uint64")
-   ;(op-spec "btoi" op-btoi '("Bytes") "Uint64")
-   ;(op-spec "%" op-mod '("Uint64" "Uint64") "Uint64")
-   ;(op-spec "|" op-bitor '("Uint64" "Uint64") "Uint64")
-   ;(op-sepc "&" op-bitand '("Uint64" "Uint64") "Uint64")
-   ;(op-spec "^" op-bitxor '("Uint64" "Uint64") "Uint64")
-   ;(op-spec "~" op-bitnot '("Uint64") "Uint64")
-
    (op-spec "int" op-int '() "Uint64")
    (op-spec "arg" op-arg '() "Bytes")
    (op-spec "txn" op-txn '() "Any")
    (op-spec "byte" op-byte '() "Bytes")
    (op-spec "addr" op-addr '() "Bytes")
-   ;(op-spec "global" op-globle '() "Any")
-   ;(op-spec "bnz" op-bnz '("Uint64") "None")
-   ;(op-spec "pop" op-pop '("Any") "None")
-   ;(op-spec "dup" op-dup '() "Any")
    ))
 
 
