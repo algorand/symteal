@@ -3,6 +3,8 @@
 (require rosette/lib/match)
 (require "syntax.rkt")
 
+(provide txn-content global eval_params context keccak256-hash teal-eval) 
+
 ;;; TEAL interpreter in Rosette
 
 ;;; data structures
@@ -33,9 +35,7 @@
 ; 1 is bytes
 (struct stack-elmt (value type) #:transparent)
 
-; op-spec, roughly same as OpSpec in data/transaction/logic/eval.go.
-(struct op-spec (name op args returntype) #:transparent)
-
+; maximum uint64
 (define uint64-max 18446744073709551615)
 
 ;; helper functions:
@@ -102,14 +102,15 @@
 (define (op-err cxt)
   (add-err cxt "error"))
 
-; TODO: definition. 
-(define (op-sha256 cxt) cxt)
+(define-symbolic keccak256-hash (~> integer? integer?))
 
-; TODO: definition.
-(define (op-keccak256 cxt) cxt)
-
-; TODO: definition.
-(define (op-ed25519verify cxt) cxt)
+; keccak256
+(define (op-keccak256 cxt)
+  (let ([a (top-bytes cxt)])
+    (match a
+      [(teal-error msg) (add-err cxt msg)]
+      [va (update-stack cxt (cons (stack-elmt (keccak256-hash va) 1)
+                                  (cdr (context-stack cxt))))])))
 
 (define (int-op cxt op)
   (let ([a (second-uint cxt)]
@@ -309,6 +310,9 @@
                  (add-err cxt "bnz offset out of range")
                  (update-pc (update-stack cxt (cdr (context-stack cxt))) new-pc)))
            )])))
+
+; op-spec, roughly same as OpSpec in data/transaction/logic/eval.go.
+(struct op-spec (name op args returntype) #:transparent)
 
 ; this is a list of currently supported ops
 ; purely information purpose
