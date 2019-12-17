@@ -16,7 +16,7 @@
 
 (struct minus () #:transparent)
 
-(struct divide () #:transparent)
+(struct div () #:transparent)
 
 (struct mul () #:transparent)
 
@@ -34,7 +34,9 @@
 
 (struct eq () #:transparent) ; ==
 
-(struct neq () #:transparent)
+(struct neq () #:transparent) ; !=
+
+(struct not () #:transparent)
 
 (struct len () #:transparent)
 

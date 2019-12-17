@@ -25,7 +25,7 @@
   (txn global args) #:transparent)
 
 ; define the context, TODO: add type guard to the arguments.
-(struct context (eval_params stack program pc next_pc err) #:transparent)
+(struct context (eval_params stack program pc err) #:transparent)
 
 ; stack element.
 ; type of stack element
@@ -74,7 +74,6 @@
            (context-stack cxt)
            (context-program cxt)
            (context-pc cxt)
-           (context-next_pc cxt)
            msg))
 
 ; update stack with a new stack value
@@ -83,7 +82,6 @@
            ns
            (context-program cxt)
            (context-pc cxt)
-           (context-next_pc cxt)
            (context-err cxt)))
 
 ; push an int to a stack
@@ -281,11 +279,10 @@
 
 
 ; arg
-(define (op-arg cxt)
-  (let ([args (eval_params-args (context-eval_params cxt))]
-        [idx (list-ref (context-program cxt) (+ (context-pc cxt) 1))])
-    (update-stack cxt (cons (stack-elmt 0 (eval_params-args (context-eval_params cxt)))
-                            (cdr (context-stack cxt))))))
+(define (op-arg cxt index)
+  (let ([args (eval_params-args (context-eval_params cxt))])
+    (push-bytes cxt (list-ref (eval_params-args (context-eval_params cxt)) index))))          
+
 
 ; this is a list of currently supported ops
 (define ops
@@ -312,6 +309,55 @@
    (op-spec "addr" op-addr '() "Bytes")
    ))
 
+; increase pc by 1
+(define (pc-increment cxt)
+  (context (context-eval_params cxt)
+           (context-stack cxt)
+           (context-program cxt)
+           (+ (context-pc cxt) 1)
+           (context-err cxt)))
+  
 
-;(define teal-eval-step (program context) nil)
+; teal eval step
+; read an instruction, execute this instruction,
+; then recursively call itself
+(define (eval-step cxt)
+  (cond
+    ; return cxt if all instructions has been executed
+    [(= (context-pc cxt) (len (context-program cxt))) cxt]
+    [(not (= (context-err cxt) "")) cxt]
+    [else
+     (let ([op (list-ref (context-program) (context-pc cxt))])
+       (match op
+         [(keccak256) (eval-step (pc-increment (op-keccak256 cxt)))]
+         [(err) (op-err cxt)] ; return now, no need recursion
+         [(plus) (eval-step (pc-increment (op-plus cxt)))]
+         [(div) (eval-step (pc-increment (op-div cxt)))]
+         [(mul) (eval-step (pc-increment (op-mul cxt)))]
+         [(gt) (eval-step (pc-increment (op-gt cxt)))]
+         [(lt) (eval-step (pc-increment (op-lt cxt)))]
+         [(ge) (eval-step (pc-increment (op-ge cxt)))]
+         [(le) (eval-step (pc-increment (op-le cxt)))]
+         [(land) (eval-step (pc-increment (op-and cxt)))]
+         [(lor) (eval-step (pc-increment (op-or cxt)))]
+         [(eq) (eval-step (pc-increment (op-eq cxt)))]
+         [(neq) (eval-step (pc-increment (op-neq cxt)))]
+         [(not) (eval-step (pc-increment (op-div cxt)))]
+         [(int value) (eval-step (pc-increment (op-int cxt value)))]
+         [(byte value) (eval-step (pc-increment (op-byte cxt value)))]
+         [(addr value) (eval-step (pc-increment (op-addr cxt value)))]
+         [(txn field) (eval-step (pc-increment (op-txn cxt field)))]
+         [(arg index) (eval-step (pc-increment (op-arg cxt index)))]))]))
+
+
+; teal eval
+(define (teal-eval cxt)
+  (let ([result (eval-step cxt)])
+    (cond
+      [(not (= (context-err result) "")) #f]
+      [(> (len (context-stack result)) 1) #f]
+      [(== (len (context-stack result)) 0) #f]
+      [(= (stack-elmt-type (car (context-stack result))) 1) #f]
+      [(> (stack-elmt-value (car (context-stack result))) 0) #t]
+      [else #f])))
 
