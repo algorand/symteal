@@ -229,11 +229,13 @@
 ; !
 (define (op-not cxt)
   (let ([a (top-uint cxt)])
-    (if (= a 0)
+    (match a
+      [(teal-error msg) (add-err cxt msg)]
+      [va (if (= a 0)
         (update-stack cxt
                       (cons (stack-elmt 1 0) (cdr (context-stack cxt))))
         (update-stack cxt
-                      (cons (stack-elmt 0 0) (cdr (context-stack cxt)))))))
+                      (cons (stack-elmt 0 0) (cdr (context-stack cxt)))))])))
 
 ; txn
 (define (op-txn cxt idx)
@@ -277,14 +279,39 @@
 (define (op-addr cxt value)
   (push-bytes cxt value))
 
-
 ; arg
 (define (op-arg cxt index)
   (let ([args (eval_params-args (context-eval_params cxt))])
     (push-bytes cxt (list-ref (eval_params-args (context-eval_params cxt)) index))))          
 
+; update pc
+(define (update-pc cxt new-pc)
+  (context (context-eval_params cxt)
+           (context-stack cxt)
+           (context-program cxt)
+           new-pc
+           (context-err cxt)))
+
+; increase pc by 1
+(define (pc-increment cxt)
+  (update-pc cxt (+ (context-pc cxt) 1)))
+
+; bnz
+(define (op-bnz cxt offset)
+  (let ([a (top-uint cxt)])
+    (match a
+      [(teal-error msg) (add-err cxt msg)]
+      [va
+       (if (= a 0)
+           (pc-increment (update-stack cxt (cdr (context-stack cxt)))) ;pop if zero
+           (let ([new-pc (+ (context-pc cxt) offset)])
+             (if (>= new-pc (len (context-program cxt)))
+                 (add-err cxt "bnz offset out of range")
+                 (update-pc (update-stack cxt (cdr (context-stack cxt))) new-pc)))
+           )])))
 
 ; this is a list of currently supported ops
+; purely information purpose
 (define ops
   (list
    (op-spec "err" op-err null "None")
@@ -307,16 +334,7 @@
    (op-spec "txn" op-txn '() "Any")
    (op-spec "byte" op-byte '() "Bytes")
    (op-spec "addr" op-addr '() "Bytes")
-   ))
-
-; increase pc by 1
-(define (pc-increment cxt)
-  (context (context-eval_params cxt)
-           (context-stack cxt)
-           (context-program cxt)
-           (+ (context-pc cxt) 1)
-           (context-err cxt)))
-  
+   ))  
 
 ; teal eval step
 ; read an instruction, execute this instruction,
