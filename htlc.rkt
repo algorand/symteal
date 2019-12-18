@@ -56,8 +56,11 @@
    (land)
    ))
 
+; define a symbolic close-remainder-to
+(define-symbolic crt integer?)
+
 (define mock-txn-content
-  (txn-content 50 1000 1000 0 5000 0 0 22 5000 22 0 0 0 0 0 0 1 0 0 0 0 0 0 0))
+  (txn-content 50 1000 1000 0 5000 0 0 22 5000 crt 0 0 0 0 0 0 1 0 0 0 0 0 0 0))
 
 (define mock-global-params
   (global-params 1000 1000 2000 0 1))
@@ -67,3 +70,10 @@
 
 (define mock-cxt
   (context mock-eval-params (list) hltc-contract 0 0))
+
+; let's verify the simple fact
+; if close-remainder-to is set to anything other than 22 or 33
+; this teal program will evaluate to false
+(assert (! (= 22 crt)))
+(assert (! (= 33 crt)))
+(verify (assert (teal-eval mock-cxt))) ; expected unsat
