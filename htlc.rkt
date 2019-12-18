@@ -27,6 +27,7 @@
    (le)
    (txn 16) ; TypeEnum
    (int 1)
+   (eq)
    (land)
    (txn 7) ; Receiver
    (global 3) ; ZeroAddress
@@ -56,7 +57,7 @@
    ))
 
 (define mock-txn-content
-  (txn-content 50 1000 1000 0 5000 0 0 22 5000 22 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
+  (txn-content 50 1000 1000 0 5000 0 0 22 5000 22 0 0 0 0 0 0 1 0 0 0 0 0 0 0))
 
 (define mock-global-params
   (global-params 1000 1000 2000 0 1))

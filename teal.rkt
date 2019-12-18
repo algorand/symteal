@@ -3,7 +3,7 @@
 (require rosette/lib/match)
 (require "syntax.rkt")
 
-(provide (all-from-out "syntax.rkt") txn-content global-params eval-params context keccak256-hash teal-eval) 
+(provide (all-from-out "syntax.rkt") txn-content global-params eval-params context keccak256-hash eval-step teal-eval) 
 
 ;;; TEAL interpreter in Rosette
 
@@ -204,7 +204,7 @@
       [va (match b
             [(teal-error msg) (add-err cxt msg)]
             [vb (let ([r (if (op va vb) 1 0)])
-    (update-stack cxt (cons (stack-elmt r 1)
+    (update-stack cxt (cons (stack-elmt r 0)
                             (cdr (cdr (context-stack cxt))))))])])))
 
 ; ==
