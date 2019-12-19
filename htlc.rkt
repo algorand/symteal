@@ -60,13 +60,13 @@
 (define-symbolic crt integer?)
 
 (define mock-txn-content
-  (txn-content 50 1000 1000 0 5000 0 0 22 5000 crt 0 0 0 0 0 0 1 0 0 0 0 0 0 0))
+  (txn-content 50 1000 1000 0 5000 0 0 0 0 crt 0 0 0 0 0 0 1 0 0 0 0 0 0 0))
 
 (define mock-global-params
   (global-params 1000 1000 2000 0 1))
 
 (define mock-eval-params
-  (eval-params mock-txn-content mock-global-params (list (keccak256-hash 42))))
+  (eval-params mock-txn-content mock-global-params (list 42)))
 
 (define mock-cxt
   (context mock-eval-params (list) hltc-contract 0 0))
@@ -76,4 +76,4 @@
 ; this teal program will evaluate to false
 (assert (! (= 22 crt)))
 (assert (! (= 33 crt)))
-(verify (assert (teal-eval mock-cxt))) ; expected unsat
+(verify (assert (not (teal-eval mock-cxt))))

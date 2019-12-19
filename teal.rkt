@@ -189,11 +189,11 @@
 ; and
 ; one caveat is that the two operands should never be negative
 (define (op-and cxt)
-  (int-comp cxt (lambda (a b) (or (= a 0) (= b 0))))) 
+  (int-comp cxt (lambda (a b) (and (> a 0) (> b 0))))) 
 
 ; or
 (define (op-or cxt)
-  (int-comp cxt (lambda (a b) (and (= a 0) (= b 0)))))        
+  (int-comp cxt (lambda (a b) (or (> a 0) (> b 0)))))        
 
 ; compare bytes
 (define (bytes-comp cxt op)
