@@ -1,6 +1,7 @@
 #lang rosette/safe
 
 (require "teal.rkt")
+(require "symbolic.rkt")
 
 ;  define template variables
 ;  - tmpl_rcv: the address to send funds to when the preimage is supplied
@@ -56,14 +57,14 @@
    (land)
    ))
 
-; define a symbolic close-remainder-to
-(define-symbolic crt integer?)
-
 (define mock-txn-content
-  (txn-content 50 1000 1000 0 5000 0 0 0 0 crt 0 0 0 0 0 0 1 0 0 0 0 0 0 0))
+  (txn-content sym-sender sym-fee sym-fv sym-fvt sym-lv sym-note
+               sym-lease sym-receiver sym-amount sym-crt sym-vpk
+               sym-spk sym-vf sym-vl sym-vkd sym-type sym-te sym-xa
+               sym-aa sym-as sym-ar sym-act sym-gi sym-tid))
 
 (define mock-global-params
-  (global-params 1000 1000 2000 0 1))
+  (global-params 1000 1000 1000 0 1))
 
 (define mock-eval-params
   (eval-params mock-txn-content mock-global-params (list 42)))
@@ -74,6 +75,6 @@
 ; let's verify the simple fact
 ; if close-remainder-to is set to anything other than 22 or 33
 ; this teal program will evaluate to false
-(assert (! (= 22 crt)))
-(assert (! (= 33 crt)))
+(assert (! (= 22 sym-crt)))
+(assert (! (= 33 sym-crt)))
 (verify (assert (not (teal-eval mock-cxt))))
