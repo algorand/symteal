@@ -2,10 +2,12 @@
 
 (require "teal.rkt")
 (require "symbolic.rkt")
+(require rosette/lib/synthax)
 
 ;  define template variables
 ;  - tmpl_rcv: the address to send funds to when the preimage is supplied
-(define tmpl_rcv 22)
+; (define tmpl_rcv 22)
+(define-symbolic tmpl_rcv integer?)
 
 ;  - TMPL_HASHFN (Deprecated): the specific hash function (either sha256 or keccak256) to apply
 ;  - tmpl_hashimg: the image of the hash function
@@ -13,13 +15,16 @@
   (keccak256-hash 42))
 
 ;  - tmpl_timeout: the round at which the account expires
-(define tmpl_timeout 500)
+; (define tmpl_timeout 500)
+(define-symbolic tmpl_timeout integer?)
 
 ;  - tmpl_own: the address to refund funds to on timeout
-(define tmpl_own 33)
+; (define tmpl_own 33)
+(define-symbolic tmpl_own integer?)
 
 ;  - tmpl_fee: maximum fee used by the transaction
-(define tmpl_fee 5000)
+; (define tmpl_fee 5000)
+(define-symbolic tmpl_fee integer?)
 
 (define hltc-contract
   (list
@@ -66,15 +71,19 @@
 (define mock-global-params
   (global-params 1000 1000 1000 0 1))
 
+(define-symbolic sym-arg-0 integer?)
+
 (define mock-eval-params
-  (eval-params mock-txn-content mock-global-params (list 42)))
+  (eval-params mock-txn-content mock-global-params (list sym-arg-0)))
 
 (define mock-cxt
   (context mock-eval-params (list) hltc-contract 0 0))
 
-; let's verify the simple fact
-; if close-remainder-to is set to anything other than 22 or 33
-; this teal program will evaluate to false
-(assert (! (= 22 sym-crt)))
-(assert (! (= 33 sym-crt)))
-(verify (assert (not (teal-eval mock-cxt))))
+; let's prove a simple property first
+; if close-remainder-to is set to anything other than tmpl_rcv or tmpl_own
+; this teal program will evaluate to false, i.e. cannot find a assignment to
+; make this teal program to true
+(assert (! (= tmpl_rcv sym-crt)))
+(assert (! (= tmpl_own sym-crt)))
+(verify (assert (not (teal-eval mock-cxt)))) ; expect unsat
+
