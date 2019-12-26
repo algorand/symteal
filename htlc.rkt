@@ -80,10 +80,55 @@
   (context mock-eval-params (list) hltc-contract 0 0))
 
 ; let's prove a simple property first
-; if close-remainder-to is set to anything other than tmpl_rcv or tmpl_own
+; if close-remainder-to (CRT) is set to anything other than tmpl_rcv or tmpl_own
 ; this teal program will evaluate to false, i.e. cannot find a assignment to
 ; make this teal program to true
 (assert (! (= tmpl_rcv sym-crt)))
 (assert (! (= tmpl_own sym-crt)))
 (verify (assert (not (teal-eval mock-cxt)))) ; expect unsat
+(clear-asserts!) 
 
+; next, we show that this program will evaluate to true in 2 cases
+; case 1: CRT is tmpl_rcv, and the hash-preimage is provided (and other conditions)
+(define case1
+  (&& (= tmpl_rcv sym-crt)
+      (= sym-arg-0 42)
+      (<= sym-fee tmpl_fee)
+      (= sym-te 1)
+      (= sym-receiver 0)
+      (= sym-amount 0)))
+
+(assert case1)
+(verify (assert (teal-eval mock-cxt))) ; expect unsat
+(clear-asserts!)
+
+; case 2: CRT is owner
+(define case2
+  (&& (= tmpl_own sym-crt)
+      (> sym-fv tmpl_timeout)
+      (<= sym-fee tmpl_fee)
+      (= sym-te 1)
+      (= sym-receiver 0)
+      (= sym-amount 0)))
+
+(assert case2)
+(verify (assert (teal-eval mock-cxt))) ; expect unsat
+(clear-asserts!)
+
+
+; finally, we show that if neither case 1 and case 2 is not true,
+; then this program will be evaluated to false
+(assert (! case1))
+(assert (! case2))
+
+; we need a bit assumption about the hash function here
+(define-symbolic a b integer?)
+(define hash-property
+    (forall (list a b)
+            (if (! (= a b))
+                (! (= (keccak256-hash a) (keccak256-hash b)))
+                (= (keccak256-hash a) (keccak256-hash b)))))
+(assert hash-property)
+
+(verify (assert (not (teal-eval mock-cxt)))) ; expect unsat
+      
