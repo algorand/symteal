@@ -2,7 +2,6 @@
 
 (require "teal.rkt")
 (require "symbolic.rkt")
-(require rosette/lib/synthax)
 
 ;  define template variables
 ;  - tmpl_rcv: the address to send funds to when the preimage is supplied
@@ -116,7 +115,7 @@
 (clear-asserts!)
 
 
-; finally, we show that if neither case 1 and case 2 is not true,
+; finally, we show that if neither case 1 and case 2 is true,
 ; then this program will be evaluated to false
 (assert (! case1))
 (assert (! case2))
