@@ -57,7 +57,7 @@
    (land)
    (int 1)
    (bnz 28) ; jump to the last instruction
-   (gtxn 0 0) ; Receiver
+   (gtxn 0 0) ; Sender
    (gtxn 1 0) ; Sender
    (eq)
    (txn 9) ; CloseRemainderTo

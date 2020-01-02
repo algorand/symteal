@@ -84,7 +84,9 @@
     [7 "* overlflow"]
     [8 "compare values in different types"]
     [9 "invalid txn field"]
-    [10 "bnz offset out of range"]))
+    [10 "bnz offset out of range"]
+    [11 "group index out of range"]
+    [12 "invalid gtxn field"]))
     
     
   

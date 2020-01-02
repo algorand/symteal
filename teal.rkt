@@ -11,7 +11,7 @@
 
 ; txn
 (struct txn-content
-  (sender fee first_valid first_valid_time last_valid
+  (args sender fee first_valid first_valid_time last_valid
    note lease receiver amount close_remainder_to
    vote_pk selection_pk vote_first vote_last vote_key_dilution
    type type_enum xfer_asset asset_amount asset_sender asset_receiver
@@ -20,11 +20,11 @@
 
 ; global parameters
 (struct global-params
-  (min_txn_fee min_balance max_txn_life zero_address group_size) #:transparent)
+  (min_txn_fee min_balance max_txn_life zero_address) #:transparent)
 
 ; eval parameters
 (struct eval-params
-  (txn global args) #:transparent)
+  (txn txn-group global group-index) #:transparent)
 
 ; define the context, TODO: add type guard to the arguments.
 (struct context (eval-params stack program pc err) #:transparent)
@@ -282,8 +282,8 @@
 
 ; arg
 (define (op-arg cxt index)
-  (let ([args (eval-params-args (context-eval-params cxt))])
-    (push-bytes cxt (list-ref (eval-params-args (context-eval-params cxt)) index))))          
+  (let ([args (txn-content-args (eval-params-txn (context-eval-params cxt)))])
+    (push-bytes cxt (list-ref args index))))          
 
 ; global
 (define (op-global cxt idx)
@@ -293,7 +293,7 @@
       [1 (push-int cxt (global-params-min_balance global))]
       [2 (push-int cxt (global-params-max_txn_life global))]
       [3 (push-bytes cxt (global-params-zero_address global))]
-      [4 (push-int cxt (global-params-group_size global))]))) 
+      [4 (push-int cxt (length (eval-params-txn-group (context-eval-params cxt))))]))) 
  
 ; update pc
 (define (update-pc cxt new-pc)
@@ -320,6 +320,39 @@
                  (add-err cxt 10) ; error-code 10: bnz offset out of range
                  (update-pc (update-stack cxt (cdr (context-stack cxt))) new-pc)))
            )])))
+
+; gtxn
+(define (op-gtxn cxt index field)
+  (let ([group (eval-params-txn-group (context-eval-params cxt))])
+    (if (or (< index 0) (>= index (length group)))
+        (add-err cxt 11)
+        (let ([txn (list-ref group index)])
+          (match field
+            [0 (push-bytes cxt (txn-content-sender txn))]
+            [1 (push-int cxt (txn-content-fee txn))]
+            [2 (push-int cxt (txn-content-first_valid txn))]
+            [3 (push-int cxt (txn-content-first_valid_time txn))]
+            [4 (push-int cxt (txn-content-last_valid txn))]
+            [5 (push-bytes cxt (txn-content-note txn))]
+            [6 (push-bytes cxt (txn-content-lease txn))]
+            [7 (push-bytes cxt (txn-content-receiver txn))]
+            [8 (push-int cxt (txn-content-amount txn))]
+            [9 (push-bytes cxt (txn-content-close_remainder_to txn))]
+            [10 (push-bytes cxt (txn-content-vote_pk txn))]
+            [11 (push-bytes cxt (txn-content-selection_pk txn))]
+            [12 (push-int cxt (txn-content-vote_first txn))]
+            [13 (push-int cxt (txn-content-vote_last txn))]
+            [14 (push-int cxt (txn-content-vote_key_dilution txn))]
+            [15 (push-bytes cxt (txn-content-type txn))]
+            [16 (push-int cxt (txn-content-type_enum txn))]
+            [17 (push-int cxt (txn-content-xfer_asset txn))]
+            [18 (push-int cxt (txn-content-asset_amount txn))]
+            [19 (push-bytes cxt (txn-content-asset_sender txn))]
+            [20 (push-bytes cxt (txn-content-asset_receiver txn))]
+            [21 (push-bytes cxt (txn-content-asset_close_to txn))]
+            [22 (push-int cxt (txn-content-group_index txn))]
+            [23 (push-bytes cxt (txn-content-tx_id txn))]
+            [_ (add-err cxt 12)])))))
 
 ; op-spec, roughly same as OpSpec in data/transaction/logic/eval.go.
 (struct op-spec (name op args returntype) #:transparent)

@@ -61,19 +61,19 @@
    (land)
    ))
 
+(define-symbolic sym-arg-0 integer?)
+
 (define mock-txn-content
-  (txn-content sym-sender sym-fee sym-fv sym-fvt sym-lv sym-note
+  (txn-content (list sym-arg-0) sym-sender sym-fee sym-fv sym-fvt sym-lv sym-note
                sym-lease sym-receiver sym-amount sym-crt sym-vpk
                sym-spk sym-vf sym-vl sym-vkd sym-type sym-te sym-xa
                sym-aa sym-as sym-ar sym-act sym-gi sym-tid))
 
 (define mock-global-params
-  (global-params 1000 1000 1000 0 1))
-
-(define-symbolic sym-arg-0 integer?)
+  (global-params 1000 1000 1000 0))
 
 (define mock-eval-params
-  (eval-params mock-txn-content mock-global-params (list sym-arg-0)))
+  (eval-params mock-txn-content (list mock-txn-content) mock-global-params 0))
 
 (define mock-cxt
   (context mock-eval-params (list) hltc-contract 0 0))
@@ -128,6 +128,4 @@
                 (! (= (keccak256-hash a) (keccak256-hash b)))
                 (= (keccak256-hash a) (keccak256-hash b)))))
 (assert hash-property)
-
 (verify (assert (not (teal-eval mock-cxt)))) ; expect unsat
-      
