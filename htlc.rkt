@@ -1,7 +1,6 @@
 #lang rosette/safe
 
-(require "teal.rkt")
-(require "symbolic.rkt")
+(require "teal.rkt" "symbolic.rkt")
 
 ;  define template variables
 ;  - tmpl_rcv: the address to send funds to when the preimage is supplied
@@ -63,17 +62,14 @@
 
 (define-symbolic sym-arg-0 integer?)
 
-(define mock-txn-content
-  (txn-content (list sym-arg-0) sym-sender sym-fee sym-fv sym-fvt sym-lv sym-note
-               sym-lease sym-receiver sym-amount sym-crt sym-vpk
-               sym-spk sym-vf sym-vl sym-vkd sym-type sym-te sym-xa
-               sym-aa sym-as sym-ar sym-act sym-gi sym-tid))
+(define mock-txn
+  (gen-sym-txn (list sym-arg-0)))
 
 (define mock-global-params
   (global-params 1000 1000 1000 0))
 
 (define mock-eval-params
-  (eval-params mock-txn-content (list mock-txn-content) mock-global-params 0))
+  (eval-params mock-txn (list mock-txn) mock-global-params 0))
 
 (define mock-cxt
   (context mock-eval-params (list) hltc-contract 0 0))
@@ -82,20 +78,20 @@
 ; if close-remainder-to (CRT) is set to anything other than tmpl_rcv or tmpl_own
 ; this teal program will evaluate to false, i.e. cannot find a assignment to
 ; make this teal program to true
-(assert (! (= tmpl_rcv sym-crt)))
-(assert (! (= tmpl_own sym-crt)))
+(assert (! (= tmpl_rcv (txn-content-close_remainder_to mock-txn))))
+(assert (! (= tmpl_own (txn-content-close_remainder_to mock-txn))))
 (verify (assert (not (teal-eval mock-cxt)))) ; expect unsat
 (clear-asserts!) 
 
 ; next, we show that this program will evaluate to true in 2 cases
 ; case 1: CRT is tmpl_rcv, and the hash-preimage is provided (and other conditions)
 (define case1
-  (&& (= tmpl_rcv sym-crt)
+  (&& (= tmpl_rcv (txn-content-close_remainder_to mock-txn))
       (= sym-arg-0 42)
-      (<= sym-fee tmpl_fee)
-      (= sym-te 1)
-      (= sym-receiver 0)
-      (= sym-amount 0)))
+      (<= (txn-content-fee mock-txn) tmpl_fee)
+      (= (txn-content-type_enum mock-txn) 1)
+      (= (txn-content-receiver mock-txn) 0)
+      (= (txn-content-amount mock-txn) 0)))
 
 (assert case1)
 (verify (assert (teal-eval mock-cxt))) ; expect unsat
@@ -103,12 +99,12 @@
 
 ; case 2: CRT is owner
 (define case2
-  (&& (= tmpl_own sym-crt)
-      (> sym-fv tmpl_timeout)
-      (<= sym-fee tmpl_fee)
-      (= sym-te 1)
-      (= sym-receiver 0)
-      (= sym-amount 0)))
+  (&& (= tmpl_own (txn-content-close_remainder_to mock-txn))
+      (> (txn-content-first_valid mock-txn) tmpl_timeout)
+      (<= (txn-content-fee mock-txn) tmpl_fee)
+      (= (txn-content-type_enum mock-txn) 1)
+      (= (txn-content-receiver mock-txn) 0)
+      (= (txn-content-amount mock-txn) 0)))
 
 (assert case2)
 (verify (assert (teal-eval mock-cxt))) ; expect unsat

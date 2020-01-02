@@ -1,6 +1,6 @@
 #lang rosette/safe
 
-(require "syntax.rkt")
+(require "syntax.rkt" "teal.rkt" "symbolic.rkt")
 
 ;  define template variables
 ;  - tmpl_rcv1: the first recipient in the split account
@@ -86,3 +86,18 @@
    (land)
    (land) 
   ))
+
+(define mock-txn-content
+  (txn-content '() sym-sender sym-fee sym-fv sym-fvt sym-lv sym-note
+               sym-lease sym-receiver sym-amount sym-crt sym-vpk
+               sym-spk sym-vf sym-vl sym-vkd sym-type sym-te sym-xa
+               sym-aa sym-as sym-ar sym-act sym-gi sym-tid))
+
+(define mock-global-params
+  (global-params 1000 1000 1000 0))
+
+(define mock-eval-params
+  (eval-params mock-txn-content (list mock-txn-content) mock-global-params 0))
+
+(define mock-cxt
+  (context mock-eval-params (list) split-contract 0 0))

@@ -3,7 +3,12 @@
 (require rosette/lib/match)
 (require "syntax.rkt")
 
-(provide (all-from-out "syntax.rkt") txn-content global-params eval-params context keccak256-hash eval-step teal-eval) 
+(provide (all-from-out "syntax.rkt")
+         (struct-out txn-content)
+         (struct-out global-params)
+         (struct-out eval-params)
+         (struct-out context)
+         keccak256-hash eval-step teal-eval) 
 
 ;;; TEAL interpreter in Rosette
 
