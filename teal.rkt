@@ -321,7 +321,7 @@
        (if (= a 0)
            (pc-increment (update-stack cxt (cdr (context-stack cxt)))) ;pop if zero
            (let ([new-pc (+ (context-pc cxt) offset)])
-             (if (>= new-pc (len (context-program cxt)))
+             (if (>= new-pc (length (context-program cxt)))
                  (add-err cxt 10) ; error-code 10: bnz offset out of range
                  (update-pc (update-stack cxt (cdr (context-stack cxt))) new-pc)))
            )])))
@@ -419,7 +419,8 @@
          [(addr value) (eval-step (pc-increment (op-addr cxt value)))]
          [(txn field) (eval-step (pc-increment (op-txn cxt field)))]
          [(arg index) (eval-step (pc-increment (op-arg cxt index)))]
-         [(global index) (eval-step (pc-increment (op-global cxt index)))]))]))
+         [(global index) (eval-step (pc-increment (op-global cxt index)))]
+         [(bnz offset) (eval-step (op-bnz cxt offset))]))]))
 
 
 ; teal eval

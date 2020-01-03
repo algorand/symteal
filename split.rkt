@@ -87,17 +87,16 @@
    (land) 
   ))
 
-(define mock-txn-content
-  (txn-content '() sym-sender sym-fee sym-fv sym-fvt sym-lv sym-note
-               sym-lease sym-receiver sym-amount sym-crt sym-vpk
-               sym-spk sym-vf sym-vl sym-vkd sym-type sym-te sym-xa
-               sym-aa sym-as sym-ar sym-act sym-gi sym-tid))
+(define sym-mock-txn
+  (gen-sym-txn '()))
 
 (define mock-global-params
   (global-params 1000 1000 1000 0))
 
 (define mock-eval-params
-  (eval-params mock-txn-content (list mock-txn-content) mock-global-params 0))
+  (eval-params sym-mock-txn (list sym-mock-txn) mock-global-params 0))
 
 (define mock-cxt
   (context mock-eval-params (list) split-contract 0 0))
+
+(solve (assert (teal-eval mock-cxt)))
