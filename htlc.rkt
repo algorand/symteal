@@ -24,7 +24,7 @@
 ; (define tmpl_fee 5000)
 (define-symbolic tmpl_fee integer?)
 
-(define hltc-contract
+(define htlc-contract
   (list
    (txn 1) ; Fee
    (int tmpl_fee)
@@ -72,7 +72,7 @@
   (eval-params mock-txn (list mock-txn) mock-global-params 0))
 
 (define mock-cxt
-  (context mock-eval-params (list) hltc-contract 0 0))
+  (context mock-eval-params (list) htlc-contract 0 0))
 
 ; let's prove a simple property first
 ; if close-remainder-to (CRT) is set to anything other than tmpl_rcv or tmpl_own

@@ -1,5 +1,6 @@
-#lang rosette/safe
+#lang rosette
 
+(require rosette/lib/match)
 (require "syntax.rkt" "teal.rkt" "symbolic.rkt")
 
 ;  define template variables
@@ -87,16 +88,28 @@
    (land) 
   ))
 
-(define sym-mock-txn
-  (gen-sym-txn '()))
+(define sym-txns
+  (build-list 16 (lambda (x) (cons x (gen-sym-txn '())))))
+
+(define-symbolic group-size integer?)
+
+(define txn-group-with-indices
+  (take sym-txns group-size))
 
 (define mock-global-params
   (global-params 1000 1000 1000 0))
 
-(define mock-eval-params
-  (eval-params sym-mock-txn (list sym-mock-txn) mock-global-params 0))
+(define (mock-eval-params txn txn-group i)
+  (eval-params txn txn-group mock-global-params i))
 
-(define mock-cxt
-  (context mock-eval-params (list) split-contract 0 0))
+(define (eval-txn-group txns-with-indices global-params)
+  (let ([txn-group (map cdr txns-with-indices)])
+    (apply && (map (lambda (x)
+                     (let ([i (car x)]
+                           [txn (cdr x)])
+                       (teal-eval (context (mock-eval-params txn txn-group i) '() split-contract 0 0))))
+                   txns-with-indices))))
+           
 
-(solve (assert (teal-eval mock-cxt)))
+
+
