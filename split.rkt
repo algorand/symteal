@@ -88,13 +88,13 @@
    (land) 
   ))
 
-(define sym-txns
-  (build-list 16 (lambda (x) (cons x (gen-sym-txn '())))))
+(define sym-txns-with-indices
+  (for/list ([i 16]) (cons (gen-sym-txn '() i) i)))
 
 (define-symbolic group-size integer?)
 
 (define txn-group-with-indices
-  (take sym-txns group-size))
+  (take sym-txns-with-indices group-size))
 
 (define mock-global-params
   (global-params 1000 1000 1000 0))

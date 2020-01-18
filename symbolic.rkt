@@ -95,7 +95,6 @@
   (define-symbolic* xfer-asset integer?)
   xfer-asset)
 
-
 ; asset aamount
 (define (sym-aa)
   (define-symbolic* asset-amount integer?)
@@ -116,11 +115,6 @@
   (define-symbolic* asset-close-to integer?)
   asset-close-to)
 
-; group index
-(define (sym-gi)
-  (define-symbolic* group-index integer?)
-  group-index)
-
 ; tx id
 (define (sym-tid)
   (define-symbolic* tx-id integer?)
@@ -131,4 +125,4 @@
   (txn-content args (sym-sender) (sym-fee) (sym-fv) (sym-fvt) (sym-lv) (sym-note)
                (sym-lease) (sym-receiver) (sym-amount) (sym-crt) (sym-vpk)
                (sym-spk) (sym-vf) (sym-vl) (sym-vkd) (sym-type) (sym-te) (sym-xa)
-               (sym-aa) (sym-as) (sym-ar) (sym-act) (sym-gi) (sym-tid)))
+               (sym-aa) (sym-as) (sym-ar) (sym-act) (sym-tid)))

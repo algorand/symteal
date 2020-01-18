@@ -20,7 +20,7 @@
    note lease receiver amount close_remainder_to
    vote_pk selection_pk vote_first vote_last vote_key_dilution
    type type_enum xfer_asset asset_amount asset_sender asset_receiver
-   asset_close_to group_index tx_id)
+   asset_close_to tx_id)
   #:transparent)
 
 ; global parameters
@@ -269,7 +269,7 @@
       [19 (push-bytes cxt (txn-content-asset_sender txn))]
       [20 (push-bytes cxt (txn-content-asset_receiver txn))]
       [21 (push-bytes cxt (txn-content-asset_close_to txn))]
-      [22 (push-int cxt (txn-content-group_index txn))]
+      [22 (push-int cxt (eval-params-group-index eval-params-txn))]
       [23 (push-bytes cxt (txn-content-tx_id txn))]
       [_ (add-err cxt 9)] ; error-code 9: invalid txn field
       )))
@@ -355,7 +355,7 @@
             [19 (push-bytes cxt (txn-content-asset_sender txn))]
             [20 (push-bytes cxt (txn-content-asset_receiver txn))]
             [21 (push-bytes cxt (txn-content-asset_close_to txn))]
-            [22 (push-int cxt (txn-content-group_index txn))]
+            [22 (push-int cxt index)]
             [23 (push-bytes cxt (txn-content-tx_id txn))]
             [_ (add-err cxt 12)])))))
 
