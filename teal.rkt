@@ -420,7 +420,8 @@
          [(txn field) (eval-step (pc-increment (op-txn cxt field)))]
          [(arg index) (eval-step (pc-increment (op-arg cxt index)))]
          [(global index) (eval-step (pc-increment (op-global cxt index)))]
-         [(bnz offset) (eval-step (op-bnz cxt offset))]))]))
+         [(bnz offset) (eval-step (op-bnz cxt offset))]
+         [(gtxn index field) (eval-step (pc-increment (op-gtxn cxt index field)))]))]))
 
 
 ; teal eval
