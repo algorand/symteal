@@ -180,7 +180,7 @@
         (<= (txn-content-fee txn-0) tmpl_fee)
         (<= (txn-content-fee txn-1) tmpl_fee))))
         
-;(assert case-1)
+(assert case-1)
 ;(asserts)
 ;(eval-txn-group txn-group-with-indices mock-global-params)
 (define sol
