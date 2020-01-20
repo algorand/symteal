@@ -72,9 +72,18 @@
 
 (struct teal-error (msg) #:transparent) ; this is not part of syntax
 
+
+(require syntax/parse/define)
+
+(define-simple-macro (number-match v [c e ...] ... [{~datum else} e2 ...])
+  (case v
+    [(c) e ...]
+    ...
+    [else e2 ...]))
+
 ; decode error code to error message
 (define (decode-error error-code)
-  (match error-code
+  (number-match error-code
     [1 "type-error-expected-uint"]
     [2 "type-error-expected-bytes"]
     [3 "error"]
@@ -86,7 +95,5 @@
     [9 "invalid txn field"]
     [10 "bnz offset out of range"]
     [11 "group index out of range"]
-    [12 "invalid gtxn field"]))
-    
-    
-  
+    [12 "invalid gtxn field"]
+    [else (assert #f "impossible")]))
