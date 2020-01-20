@@ -8,7 +8,7 @@
          (struct-out global-params)
          (struct-out eval-params)
          (struct-out context)
-         keccak256-hash eval-step teal-eval) 
+         keccak256-hash eval-step teal-eval uint64-max) 
 
 ;;; TEAL interpreter in Rosette
 

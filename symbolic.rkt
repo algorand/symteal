@@ -8,7 +8,6 @@
 ; sender
 (define (sym-sender)
   (define-symbolic* sender integer?)
-  (assert (>= sender 0))
   sender)
 
 ; fee
@@ -49,6 +48,8 @@
 ; amount
 (define (sym-amount)
   (define-symbolic* amount integer?)
+  (assert (>= amount 0))
+  (assert (< amount uint64-max))
   amount)
 
 ; close remainder to
@@ -99,6 +100,8 @@
 ; asset aamount
 (define (sym-aa)
   (define-symbolic* asset-amount integer?)
+  (assert (>= asset-amount 0))
+  (assert (< asset-amount uint64-max))
   asset-amount)
 
 ; asset sender
