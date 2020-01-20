@@ -8,6 +8,7 @@
 ; sender
 (define (sym-sender)
   (define-symbolic* sender integer?)
+  (assert (>= sender 0))
   sender)
 
 ; fee
