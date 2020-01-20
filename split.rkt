@@ -1,6 +1,5 @@
 #lang rosette/safe
 
-(require rosette/lib/match)
 (require "syntax.rkt" "teal.rkt" "symbolic.rkt")
 
 ;  define template variables
@@ -115,6 +114,11 @@
         (cons (gen-sym-txn '()) 14)
         (cons (gen-sym-txn '()) 15)))
 
+
+;; Or just use this
+;; (require (only-in racket [build-list r:build-list]))
+;; (define sym-txns-with-indices (r:build-list 16 (λ (i) (cons (gen-sym-txn '()) i))))
+
 ;(define txn-0
 ;  (txn-content '() 0 0 1000 1000 2000 0 0 0 510984 0 0 0 0 0 0 0 1 0 0 0 0 0 0))
 
@@ -131,9 +135,8 @@
 ;(teal-eval (context split-eval-param-1 '() split-contract 0 0)) 
   
 
-;(define group-size 2)
+;; (define group-size 3)
 (define-symbolic group-size integer?)
-(assert (= group-size 2))
 
 (define txn-group-with-indices
 ;  (list (cons txn-0 0) (cons txn-1 1)))
@@ -161,9 +164,10 @@
 ; case 1, split payment
 
 (define case-1
+ (for/all ([txn-group-with-indices txn-group-with-indices])
   (let ([txn-0 (txn-by-index txn-group-with-indices 0)]
         [txn-1 (txn-by-index txn-group-with-indices 1)])
-    (&& (= group-size 2)
+    (&& #;(= group-size 2)
         (>= tmpl_rat1 0)
         (>= tmpl_rat2 0)
         (< (* (txn-content-amount txn-0) tmpl_rat2) uint64-max)
@@ -178,13 +182,14 @@
         (= (txn-content-type_enum txn-0) 1)
         (= (txn-content-type_enum txn-1) 1)
         (<= (txn-content-fee txn-0) tmpl_fee)
-        (<= (txn-content-fee txn-1) tmpl_fee))))
+        (<= (txn-content-fee txn-1) tmpl_fee)))))
         
 (assert case-1)
 ;(asserts)
 ;(eval-txn-group txn-group-with-indices mock-global-params)
 (define sol
-  (solve (assert (not (eval-txn-group txn-group-with-indices mock-global-params)))))
+  (solve (assert (not (for/all ([txn-group-with-indices txn-group-with-indices])
+                        (eval-txn-group txn-group-with-indices mock-global-params))))))
 
 (print sol)
 

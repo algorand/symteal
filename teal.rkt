@@ -246,7 +246,7 @@
 ; txn
 (define (op-txn cxt idx)
   (let ([txn (eval-params-txn (context-eval-params cxt))])
-    (match idx
+    (number-match idx
       [0 (push-bytes cxt (txn-content-sender txn))]
       [1 (push-int cxt (txn-content-fee txn))]
       [2 (push-int cxt (txn-content-first_valid txn))]
@@ -271,7 +271,7 @@
       [21 (push-bytes cxt (txn-content-asset_close_to txn))]
       [22 (push-int cxt (eval-params-group-index eval-params-txn))]
       [23 (push-bytes cxt (txn-content-tx_id txn))]
-      [_ (add-err cxt 9)] ; error-code 9: invalid txn field
+      [else (add-err cxt 9)] ; error-code 9: invalid txn field
       )))
 
   
@@ -332,7 +332,7 @@
     (if (or (< index 0) (>= index (length group)))
         (add-err cxt 11)
         (let ([txn (list-ref group index)])
-          (match field
+          (number-match field
             [0 (push-bytes cxt (txn-content-sender txn))]
             [1 (push-int cxt (txn-content-fee txn))]
             [2 (push-int cxt (txn-content-first_valid txn))]
@@ -357,7 +357,7 @@
             [21 (push-bytes cxt (txn-content-asset_close_to txn))]
             [22 (push-int cxt index)]
             [23 (push-bytes cxt (txn-content-tx_id txn))]
-            [_ (add-err cxt 12)])))))
+            [else (add-err cxt 12)])))))
 
 ; op-spec, roughly same as OpSpec in data/transaction/logic/eval.go.
 (struct op-spec (name op args returntype) #:transparent)
