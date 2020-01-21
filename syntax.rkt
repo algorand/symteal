@@ -1,6 +1,5 @@
 #lang rosette/safe
 
-(require rosette/lib/match)
 (provide (all-defined-out))
 
 ;;; Arithmetic

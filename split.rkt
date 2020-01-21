@@ -4,24 +4,24 @@
 
 ;  define template variables
 ;  - tmpl_rcv1: the first recipient in the split account
-(define tmpl_rcv1 0)
-;(define-symbolic tmpl_rcv1 integer?)
+;(define tmpl_rcv1 0)
+(define-symbolic tmpl_rcv1 integer?)
 
 ;  - tmpl_rcv2: the second recipient in the split account
-(define tmpl_rcv2 0)
-;(define-symbolic tmpl_rcv2 integer?)
+;(define tmpl_rcv2 0)
+(define-symbolic tmpl_rcv2 integer?)
 
 ;  - tmpl_rat1: fraction of money to be paid to the first recipient
-(define tmpl_rat1 67415691913592808)
-;(define-symbolic tmpl_rat1 integer?)
+;(define tmpl_rat1 67415691913592808)
+(define-symbolic tmpl_rat1 integer?)
 
 ;  - tmpl_rat2: fraction of money to be paid to the second recipient
-(define tmpl_rat2 22560556332927)
-;(define-symbolic tmpl_rat2 integer?)
+;(define tmpl_rat2 22560556332927)
+(define-symbolic tmpl_rat2 integer?)
 
 ;  - tmpl_minpay: minimum amount to be paid out of the account
-(define tmpl_minpay 0)
-;(define-symbolic tmpl_minpay integer?)
+;(define tmpl_minpay 0)
+(define-symbolic tmpl_minpay integer?)
 
 ;  - tmpl_timeout: the round at which the account expires
 ;(define tmpl_timeout 5000)
@@ -32,8 +32,8 @@
 (define-symbolic tmpl_own integer?)
 
 ;  - tmpl_fee: half of the maximum fee used by each split forwarding group transaction 
-(define tmpl_fee 0)
-;(define-symbolic tmpl_fee integer?)
+;(define tmpl_fee 0)
+(define-symbolic tmpl_fee integer?)
 
 (define split-contract
   (list
@@ -95,29 +95,9 @@
    (land) 
   ))
 
-; this is not elegant, what may worth it to stay in rosette/safe
-(define sym-txns-with-indices
-  (list (cons (gen-sym-txn '()) 0)
-        (cons (gen-sym-txn '()) 1)
-        (cons (gen-sym-txn '()) 2)
-        (cons (gen-sym-txn '()) 3)
-        (cons (gen-sym-txn '()) 4)
-        (cons (gen-sym-txn '()) 5)
-        (cons (gen-sym-txn '()) 6)
-        (cons (gen-sym-txn '()) 7)
-        (cons (gen-sym-txn '()) 8)
-        (cons (gen-sym-txn '()) 9)
-        (cons (gen-sym-txn '()) 10)
-        (cons (gen-sym-txn '()) 11)
-        (cons (gen-sym-txn '()) 12)
-        (cons (gen-sym-txn '()) 13)
-        (cons (gen-sym-txn '()) 14)
-        (cons (gen-sym-txn '()) 15)))
-
-
-;; Or just use this
-;; (require (only-in racket [build-list r:build-list]))
-;; (define sym-txns-with-indices (r:build-list 16 (λ (i) (cons (gen-sym-txn '()) i))))
+; this is safe :)
+(require (only-in racket [build-list r:build-list]))
+(define sym-txns-with-indices (r:build-list 16 (λ (i) (cons (gen-sym-txn '()) i))))
 
 ;(define txn-0
 ;  (txn-content '() 0 0 1000 1000 2000 0 0 0 510984 0 0 0 0 0 0 0 1 0 0 0 0 0 0))
@@ -134,12 +114,9 @@
 ;(teal-eval (context split-eval-param-0 '() split-contract 0 0))
 ;(teal-eval (context split-eval-param-1 '() split-contract 0 0)) 
   
-
-;; (define group-size 3)
 (define-symbolic group-size integer?)
 
 (define txn-group-with-indices
-;  (list (cons txn-0 0) (cons txn-1 1)))
   (take sym-txns-with-indices group-size))
 
 (define mock-global-params
@@ -167,11 +144,11 @@
  (for/all ([txn-group-with-indices txn-group-with-indices])
   (let ([txn-0 (txn-by-index txn-group-with-indices 0)]
         [txn-1 (txn-by-index txn-group-with-indices 1)])
-    (&& #;(= group-size 2)
+    (&& (= group-size 2)
         (>= tmpl_rat1 0)
         (>= tmpl_rat2 0)
-        (< (* (txn-content-amount txn-0) tmpl_rat2) uint64-max)
-        (< (* (txn-content-amount txn-1) tmpl_rat1) uint64-max)
+        (< (* (txn-content-amount txn-0) tmpl_rat2) uint64-max) ; assert mul doesn't overflow
+        (< (* (txn-content-amount txn-1) tmpl_rat1) uint64-max) ; assert mul doesn't overflow
         (= (txn-content-sender txn-0) (txn-content-sender txn-1))
         (= (txn-content-receiver txn-0) tmpl_rcv1)
         (= (txn-content-receiver txn-1) tmpl_rcv2)
@@ -185,21 +162,11 @@
         (<= (txn-content-fee txn-1) tmpl_fee)))))
         
 (assert case-1)
-;(asserts)
-;(eval-txn-group txn-group-with-indices mock-global-params)
 (define sol
   (solve (assert (not (for/all ([txn-group-with-indices txn-group-with-indices])
                         (eval-txn-group txn-group-with-indices mock-global-params))))))
 
 (print sol)
-
-;(define txn-0 (txn-by-index txn-group-with-indices 0))
-
-;(mock-eval-params txn-0 (map car txn-group-with-indices) 0)
-
-;(teal-eval (context (mock-eval-params txn-0 (map car txn-group-with-indices) 0) '() split-contract 0 0))
-;(solve (assert (not (teal-eval (context (mock-eval-params txn-0 (map car txn-group-with-indices) 0) '() split-contract 0 0)))))
-;(clear-asserts!)
 
 ; case 2, this case is a bit strange since the original contract didn't specify group size in
 ; the close case. 
