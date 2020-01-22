@@ -147,8 +147,8 @@
     (&& (= group-size 2)
         (>= tmpl_rat1 0)
         (>= tmpl_rat2 0)
-        (< (* (txn-content-amount txn-0) tmpl_rat2) uint64-max) ; assert mul doesn't overflow
-        (< (* (txn-content-amount txn-1) tmpl_rat1) uint64-max) ; assert mul doesn't overflow
+        (<= (* (txn-content-amount txn-0) tmpl_rat2) uint64-max) ; assert mul doesn't overflow
+        (<= (* (txn-content-amount txn-1) tmpl_rat1) uint64-max) ; assert mul doesn't overflow
         (= (txn-content-sender txn-0) (txn-content-sender txn-1))
         (= (txn-content-receiver txn-0) tmpl_rcv1)
         (= (txn-content-receiver txn-1) tmpl_rcv2)
@@ -167,21 +167,23 @@
                         (eval-txn-group txn-group-with-indices mock-global-params))))))
 
 (print sol)
+(clear-asserts!)
 
 ; case 2, this case is a bit strange since the original contract didn't specify group size in
 ; the close case. 
-;(assert (> group-size 0))
-;(assert (<= group-size 16))
-;
-;(define (ok-txn-with-indices txn-with-indices)
-;  (let ([txn (car txn-with-indices)])
-;    (&& (= (txn-content-close_remainder_to txn) tmpl_own)
-;        (= (txn-content-amount txn) 0)
-;        (= (txn-content-receiver txn) 0)
-;        (> (txn-content-first_valid txn) tmpl_timeout))))
-; 
-;(define case-2
-;     (apply && (map ok-txn-with-indices txn-group-with-indices)))
-;
-;(assert case-2)
-;(verify (assert (not (eval-txn-group txn-group-with-indices mock-global-params))))
+
+(define case-2
+  (for/all ([txn-group-with-indices txn-group-with-indices])
+    (let ([txn (txn-by-index txn-group-with-indices 0)])
+      (&& (= group-size 1)
+          (= (txn-content-close_remainder_to txn) tmpl_own)
+          (= (txn-content-amount txn) 0)
+          (= (txn-content-receiver txn) 0)
+          (> (txn-content-first_valid txn) tmpl_timeout)))))
+ 
+(assert case-2)
+(define sol-2
+  (solve (assert (not (for/all ([txn-group-with-indices txn-group-with-indices])
+                        (eval-txn-group txn-group-with-indices mock-global-params))))))
+
+(print sol-2)
