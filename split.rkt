@@ -161,13 +161,13 @@
         (<= (txn-content-fee txn-0) tmpl_fee)
         (<= (txn-content-fee txn-1) tmpl_fee)))))
         
-(assert case-1)
 (define sol
   (solve (assert (not (for/all ([txn-group-with-indices txn-group-with-indices])
-                        (eval-txn-group txn-group-with-indices mock-global-params))))))
+                       (if case-1
+                           (eval-txn-group txn-group-with-indices mock-global-params)
+                           #t))))))
 
 (print sol)
-(clear-asserts!)
 
 ; case 2, this case is a bit strange since the original contract didn't specify group size in
 ; the close case. 
