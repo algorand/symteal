@@ -1,6 +1,6 @@
 #lang rosette/safe
 
-(require "teal.rkt")
+(require "teal.rkt" "config.rkt")
 (provide (all-defined-out))
 
 ; define symbolic values
@@ -8,6 +8,8 @@
 ; sender
 (define (sym-sender)
   (define-symbolic* sender integer?)
+  (assert (>= sender 0))
+  (assert (< sender universe-size))
   sender)
 
 ; fee
@@ -43,6 +45,8 @@
 ; receiver
 (define (sym-receiver)
   (define-symbolic* receiver integer?)
+  (assert (>= receiver 0))
+  (assert (< receiver universe-size))
   receiver)
 
 ; amount
@@ -130,3 +134,19 @@
                (sym-lease) (sym-receiver) (sym-amount) (sym-crt) (sym-vpk)
                (sym-spk) (sym-vf) (sym-vl) (sym-vkd) (sym-type) (sym-te) (sym-xa)
                (sym-aa) (sym-as) (sym-ar) (sym-act) (sym-tid)))
+
+; algo balance
+(define (sym-algo-balance)
+  (define-symbolic* algo-balance integer?)
+  algo-balance)
+
+; this is safe :)
+(require (only-in racket [build-list r:build-list]))
+
+; generate symbolic transactions with indices
+(define sym-txns-with-indices (r:build-list 16 (λ (i) (cons (gen-sym-txn '()) i))))
+
+; generate account states
+; currently, the account universe is a list of balances
+(define gen-sym-account-universe
+  (r:build-list universe-size (λ _ (sym-algo-balance))))

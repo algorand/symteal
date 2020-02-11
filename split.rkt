@@ -95,10 +95,6 @@
    (land) 
   ))
 
-; this is safe :)
-(require (only-in racket [build-list r:build-list]))
-(define sym-txns-with-indices (r:build-list 16 (λ (i) (cons (gen-sym-txn '()) i))))
-
 ;(define txn-0
 ;  (txn-content '() 0 0 1000 1000 2000 0 0 0 510984 0 0 0 0 0 0 0 1 0 0 0 0 0 0))
 
