@@ -23,7 +23,6 @@
                   sender
                   (list-set (list-ref account-universe sender) index (- sender-balance amount))))))
 
-
 ; eval single transaction
 ; currently support algo and asset payment
 ; TODO: support more asset txn type, e.g. freeze and clawback
@@ -35,6 +34,7 @@
               [amount (txn-content-amount)]
               [sender-balance (car (list-ref account-universe sender))])
          (cond
+           [(or (< current-round (txn-content-first_valid txn)) (> current-round (txn-content-last_valid txn))) #f]
            [(and (= amount 0) (not (= crt 0))) (move account-universe 0 sender crt sender-balance)]
            [(and (>= amount 0) (= crt 0)) (move account-universe 0 sender receiver amount)]
            [else #f]))] ; algo payment
@@ -45,11 +45,11 @@
               [asset (txn-content-xfer_asset txn)]
               [sender-balance (list-ref (list-ref account-universe sender) asset)])
          (cond
+           [(or (< current-round (txn-content-first_valid txn)) (> current-round (txn-content-last_valid txn))) #f]
            [(and (= amount 0) (not (= crt 0))) (move account-universe asset sender crt sender-balance)]
            [(and (>= amount 0) (= crt 0)) (move account-universe asset sender receiver amount)]
            [else #f]))] ; asset transfer
     [else #f]))
-    
 
 ; eval a transaction group with error
 (define (txn-group-eval-with-error account-universe current-round txn-group)
