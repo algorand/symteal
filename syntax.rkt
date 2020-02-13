@@ -80,6 +80,11 @@
     ...
     [else e2 ...]))
 
+; add list-set to rosette/safe
+(define (list-set l p e)
+    (let-values ([(a b) (split-at l p)])
+      (append a (cons e (cdr b)))))
+
 ; decode error code to error message
 (define (decode-error error-code)
   (number-match error-code

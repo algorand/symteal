@@ -29,21 +29,21 @@
 ; TODO: support more asset txn type, e.g. freeze and clawback
 (define (txn-eval account-universe current-round txn)
   (number-match (txn-content-type_enum txn)
-    [1 (let ([sender (txn-content-sender txn)]
-             [receiver (txn-content-receiver txn)]
-             [crt (txn-content-close_remainder_to txn)]
-             [amount (txn-content-amount)]
-             [sender-balance (car (list-ref account-universe sender))])
+    [1 (let* ([sender (txn-content-sender txn)]
+              [receiver (txn-content-receiver txn)]
+              [crt (txn-content-close_remainder_to txn)]
+              [amount (txn-content-amount)]
+              [sender-balance (car (list-ref account-universe sender))])
          (cond
            [(and (= amount 0) (not (= crt 0))) (move account-universe 0 sender crt sender-balance)]
            [(and (>= amount 0) (= crt 0)) (move account-universe 0 sender receiver amount)]
            [else #f]))] ; algo payment
-    [4 (let ([sender (txn-content-asset_sender txn)]
-             [receiver (txn-content-asset_receiver txn)]
-             [crt (txn-content-asset_close_to txn)]
-             [amount (txn-content-asset_amount txn)]
-             [asset (txn-content-xfer_asset txn)]
-             [sender-balance (list-ref (list-ref account-universe0 sender) index)])
+    [4 (let* ([sender (txn-content-asset_sender txn)]
+              [receiver (txn-content-asset_receiver txn)]
+              [crt (txn-content-asset_close_to txn)]
+              [amount (txn-content-asset_amount txn)]
+              [asset (txn-content-xfer_asset txn)]
+              [sender-balance (list-ref (list-ref account-universe sender) asset)])
          (cond
            [(and (= amount 0) (not (= crt 0))) (move account-universe asset sender crt sender-balance)]
            [(and (>= amount 0) (= crt 0)) (move account-universe asset sender receiver amount)]
