@@ -153,9 +153,11 @@
 ; generate symbolic transactions with indices
 (define sym-txns-with-indices (r:build-list 16 (λ (i) (cons (gen-sym-txn '()) i))))
 
-; generate account states
-; currently, the account universe is a list of
+; generate accounts
+; the account universe is a list of
 ; '(algo-balance, asset-balance-1, ... , asset-balance-n)
 (define gen-sym-account-universe
   (r:build-list universe-size (λ _  (cons (sym-algo-balance)
                                           (r:build-list asset-capacity (λ _ (sym-asset-balance)))))))
+
+

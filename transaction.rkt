@@ -2,6 +2,11 @@
 
 (require "teal.rkt")
 
+; a ledger state consists of account states and leases
+; accounts: list of list of integers
+; leases: list of (round, lease)
+(struct ledger-state (accounts leases)  #:transparent)
+
 ; The execution of a transaction group is defined as the change
 ; of the account state from S to S'.
 ; Transactions in an atomic transaction group will be executed sequentially.
@@ -12,21 +17,24 @@
 ; will be rolled back to S.
 
 ; algo's index is 0
-(define (move account-universe index sender receiver amount)
-  (let ([sender-balance (list-ref (list-ref account-universe sender) index)]
-        [receiver-balance (list-ref (list-ref account-universe receiver) index)])
+(define (move state index sender receiver amount)
+  (let* ([account-universe (ledger-state-accounts state)]
+         [sender-balance (list-ref (list-ref account-universe sender) index)]
+         [receiver-balance (list-ref (list-ref account-universe receiver) index)])
     (if (> amount sender-balance)
         #f
-        (list-set (list-set account-universe
-                            receiver
-                            (list-set (list-ref account-universe receiver) index (+ receiver-balance amount)))  
-                  sender
-                  (list-set (list-ref account-universe sender) index (- sender-balance amount))))))
+        (ledger-state (list-set (list-set account-universe
+                                          receiver
+                                          (list-set (list-ref account-universe receiver) index (+ receiver-balance amount)))  
+                                sender
+                                (list-set (list-ref account-universe sender) index (- sender-balance amount)))
+                      (ledger-state-leases state)))))
 
 ; eval single transaction
+; it will first invalidate outdates leases
 ; currently support algo and asset payment
 ; TODO: support more asset txn type, e.g. freeze and clawback
-(define (txn-eval account-universe current-round txn)
+(define (txn-eval state current-round txn)
   (number-match (txn-content-type_enum txn)
     [1 (let* ([sender (txn-content-sender txn)]
               [receiver (txn-content-receiver txn)]
