@@ -45,14 +45,14 @@
 ; receiver
 (define (sym-receiver)
   (define-symbolic* receiver integer?)
-  (assert (>= receiver 0))
+  (assert (> receiver 0)) ; zero-address is special
   (assert (< receiver universe-size))
   receiver)
 
 ; amount
 (define (sym-amount)
   (define-symbolic* amount integer?)
-  (assert (>= amount 0))
+  (assert (>= amount 0)) ; zero-address is special
   (assert (< amount uint64-max))
   amount)
 
@@ -111,11 +111,15 @@
 ; asset sender
 (define (sym-as)
   (define-symbolic* asset-sender integer?)
+  (assert (> asset-sender 0)) ; zero address is special
+  (assert (< asset-sender universe-size))
   asset-sender)
 
 ; asset receiver
 (define (sym-ar)
   (define-symbolic* asset-receiver integer?)
+  (assert (> asset-receiver 0)) ; zero address is special
+  (assert (< asset-receiver universe-size))
   asset-receiver)
 
 ; asset close to

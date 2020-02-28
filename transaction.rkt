@@ -16,19 +16,22 @@
 ; (if successful). If any transaction failed, the end account state
 ; will be rolled back to S.
 
-; algo's index is 0
-(define (move state index sender receiver amount)
-  (let* ([account-universe (ledger-state-accounts state)]
-         [sender-balance (list-ref (list-ref account-universe sender) index)]
-         [receiver-balance (list-ref (list-ref account-universe receiver) index)])
-    (if (> amount sender-balance)
-        #f
-        (ledger-state (list-set (list-set account-universe
-                                          receiver
-                                          (list-set (list-ref account-universe receiver) index (+ receiver-balance amount)))  
-                                sender
-                                (list-set (list-ref account-universe sender) index (- sender-balance amount)))
-                      (ledger-state-leases state)))))
+; move algo
+(define (algo-move state sender receiver close fee amount)
+  (let* ([account-balance (λ (state account) (car (list-ref (ledger-state-accounts state) account)))]
+         [update-balance (λ (state account delta)
+                           (ledger-state (list-set (ledger-state-accounts state)
+                                                   account
+                                                   (+ (account-balance state) delta))
+                                         (ledger-state-leases state)))])
+    (if (< (account-balance state sender) (+ amount fee))
+        #f ; move didn't happen if sender balance cannot afford amount plus fee
+        (if (= 0 close)
+            (let ([state-1 (update-balance state sender (- (+ amount fee)))])
+              (update-balance state-1 receiver amount))
+            (let* ([state-1 (update-balance state sender (- (account-balance state sender)))]
+                   [state-2 (update-balance state-1 receiver amount)])
+              (update-balance state-2 close (- (account-balance state sender) amount fee)))))))
 
 ; eval single transaction
 ; it will first invalidate outdates leases
@@ -39,18 +42,22 @@
     [1 (let* ([sender (txn-content-sender txn)]
               [receiver (txn-content-receiver txn)]
               [crt (txn-content-close_remainder_to txn)]
-              [amount (txn-content-amount)]
+              [amount (txn-content-amount txn)]
+              [fee (txn-content-fee txn)]
+              [account-universe (ledger-state-accounts state)]
               [sender-balance (car (list-ref account-universe sender))])
          (cond
            [(or (< current-round (txn-content-first_valid txn)) (> current-round (txn-content-last_valid txn))) #f]
            [(and (= amount 0) (not (= crt 0))) (move account-universe 0 sender crt sender-balance)]
-           [(and (>= amount 0) (= crt 0)) (move account-universe 0 sender receiver amount)]
+           [(and (>= amount 0) (= crt 0)) (move account-universe 0 sender receiver fee amount)]
            [else #f]))] ; algo payment
     [4 (let* ([sender (txn-content-asset_sender txn)]
               [receiver (txn-content-asset_receiver txn)]
               [crt (txn-content-asset_close_to txn)]
               [amount (txn-content-asset_amount txn)]
+              [fee (txn-content-fee txn)]
               [asset (txn-content-xfer_asset txn)]
+              [account-universe (ledger-state-accounts state)]
               [sender-balance (list-ref (list-ref account-universe sender) asset)])
          (cond
            [(or (< current-round (txn-content-first_valid txn)) (> current-round (txn-content-last_valid txn))) #f]
