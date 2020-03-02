@@ -18,11 +18,14 @@
 
 ; move algo
 (define (algo-move state sender receiver close fee amount)
-  (let* ([account-balance (λ (state account) (car (list-ref (ledger-state-accounts state) account)))]
+  (let* ([account-state (λ (state account) (list-ref (ledger-state-accounts state) account))]
+         [account-balance (λ (state account) (car (account-state state account)))]
          [update-balance (λ (state account delta)
                            (ledger-state (list-set (ledger-state-accounts state)
                                                    account
-                                                   (+ (account-balance state) delta))
+                                                   (list-set (account-state state account)
+                                                             0
+                                                             (+ (account-balance state account) delta)))
                                          (ledger-state-leases state)))])
     (if (< (account-balance state sender) (+ amount fee))
         #f ; move didn't happen if sender balance cannot afford amount plus fee
@@ -33,8 +36,37 @@
                    [state-2 (update-balance state-1 receiver amount)])
               (update-balance state-2 close (- (account-balance state sender) amount fee)))))))
 
+(define (asset-move state asset sender receiver close fee amount)
+  (let* ([account-state (λ (state account) (list-ref (ledger-state-accounts state) account))]
+         [account-balance (λ (state account) (car (list-ref (ledger-state-accounts state) account)))]
+         [update-balance (λ (state account delta)
+                           (ledger-state (list-set (ledger-state-accounts state)
+                                                   account
+                                                   (+ (account-balance state account) delta))
+                                         (ledger-state-leases state)))]
+         [asset-balance (λ (state account asset) (list-ref (account-state state account) asset))]
+         [update-asset (λ (state account asset delta)
+                         (ledger-state (list-set (ledger-state-accounts state)
+                                                 account
+                                                 (list-set (account-state state account)
+                                                           asset
+                                                           (+ (asset-balance state account asset) delta)))
+                                       (ledger-state-leases state)))])
+    (if (or (< (asset-balance state sender asset) amount) (< (account-balance state sender) fee))
+        #f ; move didn't happen if sender asset balance cannot cover amount or sender algo balance cannot cover fee
+        (if (= 0 close)
+            (let* ([state-1 (update-balance state sender (- fee))]
+                   [state-2 (update-asset state-1 sender asset (- amount))])
+              (update-asset state-2 receiver asset amount))
+            (let* ([state-1 (update-balance state sender (- fee))]
+                   [state-2 (update-asset state-1 sender asset (- (asset-balance state sender asset)))]
+                   [state-3 (update-asset state-2 receiver asset amount)])
+            (update-asset state-3 close asset (- (asset-balance state sender asset) amount)))))))
+              
+        
+
 ; eval single transaction
-; it will first invalidate outdates leases
+; TODO: it will first invalidate outdates leases
 ; currently support algo and asset payment
 ; TODO: support more asset txn type, e.g. freeze and clawback
 (define (txn-eval state current-round txn)
@@ -48,22 +80,16 @@
               [sender-balance (car (list-ref account-universe sender))])
          (cond
            [(or (< current-round (txn-content-first_valid txn)) (> current-round (txn-content-last_valid txn))) #f]
-           [(and (= amount 0) (not (= crt 0))) (move account-universe 0 sender crt sender-balance)]
-           [(and (>= amount 0) (= crt 0)) (move account-universe 0 sender receiver fee amount)]
-           [else #f]))] ; algo payment
+           [else (algo-move state sender receiver crt fee amount)]))] ; algo payment
     [4 (let* ([sender (txn-content-asset_sender txn)]
               [receiver (txn-content-asset_receiver txn)]
               [crt (txn-content-asset_close_to txn)]
               [amount (txn-content-asset_amount txn)]
               [fee (txn-content-fee txn)]
-              [asset (txn-content-xfer_asset txn)]
-              [account-universe (ledger-state-accounts state)]
-              [sender-balance (list-ref (list-ref account-universe sender) asset)])
+              [asset (txn-content-xfer_asset txn)])
          (cond
            [(or (< current-round (txn-content-first_valid txn)) (> current-round (txn-content-last_valid txn))) #f]
-           [(and (= amount 0) (not (= crt 0))) (move account-universe asset sender crt sender-balance)]
-           [(and (>= amount 0) (= crt 0)) (move account-universe asset sender receiver amount)]
-           [else #f]))] ; asset transfer
+           [else (asset-move state asset sender receiver crt fee amount)]))] ; asset transfer
     [else #f]))
 
 ; eval a transaction group with error
