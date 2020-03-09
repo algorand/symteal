@@ -114,7 +114,7 @@
              [last-valid (txn-content-last_valid txn)]
              [lease (txn-content-lease txn)])
          (cond
-           [(or (< current-round (txn-content-first_valid txn)) (> current-round (txn-content-last_valid txn))) #f]
+           [(or (< current-round first-valid) (> current-round last-valid)) #f]
            [else (let ([state-1 (invalidate-leases state current-round)])
                    (if (lease-exist? state-1 sender lease)
                        #f
