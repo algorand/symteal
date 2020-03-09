@@ -4,7 +4,7 @@
 
 ; a ledger state consists of account states and leases
 ; accounts: list of list of integers
-; leases: list of (round, lease)
+; leases: list of (sender, lease, lastValid)
 (struct ledger-state (accounts leases)  #:transparent)
 
 ; The execution of a transaction group is defined as the change
@@ -63,33 +63,65 @@
                    [state-3 (update-asset state-2 receiver asset amount)])
             (update-asset state-3 close asset (- (asset-balance state sender asset) amount)))))))
               
-        
+; invalidate leases
+(define (invalidate-leases state current-round)
+  (ledger-state (ledger-state-accounts state)
+                (filter (λ (a) (>= (car (cdr a)) current-round)) (ledger-state-leases state))))
+
+; check whether '(sender lease ?) exist, #t if exist, #f if not 
+(define (lease-exist? state sender lease)
+  (member '(sender lease 0)
+          (ledger-state-leases state)
+          (λ (a b) (and (= (car a) (car b))
+                        (= (car (cdr a)) (car (cdr b)))))))
+; add a lease to state
+(define (add-lease state sender lease last-valid)
+  (ledger-state (ledger-state-accounts state)
+                (cons '(sender lease last-valid) (ledger-state-leases state))))
 
 ; eval single transaction
-; TODO: it will first invalidate outdates leases
 ; currently support algo and asset payment
+; it did a "lazy evaluation" on leases:
+; when a transaction failed, it did nothing
+; when a transaction suceed, it invalides expired leases, then, adds new lease if necessary 
 ; TODO: support more asset txn type, e.g. freeze and clawback
 (define (txn-eval state current-round txn)
   (number-match (txn-content-type_enum txn)
-    [1 (let* ([sender (txn-content-sender txn)]
-              [receiver (txn-content-receiver txn)]
-              [crt (txn-content-close_remainder_to txn)]
-              [amount (txn-content-amount txn)]
-              [fee (txn-content-fee txn)]
-              [account-universe (ledger-state-accounts state)]
-              [sender-balance (car (list-ref account-universe sender))])
+    [1 (let ([sender (txn-content-sender txn)]
+             [receiver (txn-content-receiver txn)]
+             [crt (txn-content-close_remainder_to txn)]
+             [amount (txn-content-amount txn)]
+             [fee (txn-content-fee txn)]
+             [lease (txn-content-lease txn)]
+             [first-valid (txn-content-first_valid txn)]
+             [last-valid (txn-content-last_valid txn)])
+         (cond
+           [(or (< current-round first-valid) (> current-round last-valid)) #f]
+           [else (let ([state-1 (invalidate-leases state current-round)])
+                   (if (lease-exist? state-1 sender lease)
+                       #f
+                       (let ([state-2 (algo-move state-1 sender receiver crt fee amount)])
+                         (if (not state-2)
+                             #f
+                             (add-lease state-2 lease sender last-valid)))))]))] ; algo payment
+    [4 (let ([sender (txn-content-asset_sender txn)]
+             [receiver (txn-content-asset_receiver txn)]
+             [crt (txn-content-asset_close_to txn)]
+             [amount (txn-content-asset_amount txn)]
+             [fee (txn-content-fee txn)]
+             [asset (txn-content-xfer_asset txn)]
+             [first-valid (txn-content-first_valid txn)]
+             [last-valid (txn-content-last_valid txn)]
+             [lease (txn-content-lease txn)])
          (cond
            [(or (< current-round (txn-content-first_valid txn)) (> current-round (txn-content-last_valid txn))) #f]
-           [else (algo-move state sender receiver crt fee amount)]))] ; algo payment
-    [4 (let* ([sender (txn-content-asset_sender txn)]
-              [receiver (txn-content-asset_receiver txn)]
-              [crt (txn-content-asset_close_to txn)]
-              [amount (txn-content-asset_amount txn)]
-              [fee (txn-content-fee txn)]
-              [asset (txn-content-xfer_asset txn)])
-         (cond
-           [(or (< current-round (txn-content-first_valid txn)) (> current-round (txn-content-last_valid txn))) #f]
-           [else (asset-move state asset sender receiver crt fee amount)]))] ; asset transfer
+           [else (let ([state-1 (invalidate-leases state current-round)])
+                   (if (lease-exist? state-1 sender lease)
+                       #f
+                       (let ([state-2 (asset-move state asset sender receiver crt fee amount)])
+                         (if (not state-2)
+                             #f
+                             (add-lease state-2 lease sender last-valid)))))]))] ; asset transfer
     [else #f]))
 
 ; eval a transaction group with error
