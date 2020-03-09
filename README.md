@@ -10,4 +10,8 @@ Symteal is built using Rosette. The easiest way to install Rosette is from Racke
 
 * Use Racket's `raco` tool to install Rosette:
 
-  `$ raco pkg install rosette`
+  ```
+  $ raco pkg install rosette
+  $ raco pkg install lens
+  ```
+  
