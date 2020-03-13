@@ -2,6 +2,14 @@
 
 (require "teal.rkt")
 
+(provide (all-from-out "teal.rkt")
+         (struct-out ledger-state)
+         algo-move
+         asset-move
+         txn-eval
+         txn-group-eval-with-error
+         txn-group-eval)
+
 ; a ledger state consists of account states and leases
 ; accounts: list of list of integers
 ; leases: list of (sender, lease, lastValid)
@@ -36,13 +44,16 @@
                    [state-2 (update-balance state-1 receiver amount)])
               (update-balance state-2 close (- (account-balance state sender) amount fee)))))))
 
+; move asset
 (define (asset-move state asset sender receiver close fee amount)
   (let* ([account-state (λ (state account) (list-ref (ledger-state-accounts state) account))]
          [account-balance (λ (state account) (car (list-ref (ledger-state-accounts state) account)))]
          [update-balance (λ (state account delta)
                            (ledger-state (list-set (ledger-state-accounts state)
                                                    account
-                                                   (+ (account-balance state account) delta))
+                                                   (list-set (account-state state account)
+                                                             0
+                                                             (+ (account-balance state account) delta)))
                                          (ledger-state-leases state)))]
          [asset-balance (λ (state account asset) (list-ref (account-state state account) asset))]
          [update-asset (λ (state account asset delta)
@@ -70,14 +81,17 @@
 
 ; check whether '(sender lease ?) exist, #t if exist, #f if not 
 (define (lease-exist? state sender lease)
-  (member '(sender lease 0)
-          (ledger-state-leases state)
-          (λ (a b) (and (= (car a) (car b))
-                        (= (car (cdr a)) (car (cdr b)))))))
+  (not (empty? (filter
+                (λ (a) (and (= (car a) sender)
+                            (= (car (cdr a)) lease)))
+                (ledger-state-leases state)))))
+  
 ; add a lease to state
 (define (add-lease state sender lease last-valid)
-  (ledger-state (ledger-state-accounts state)
-                (cons '(sender lease last-valid) (ledger-state-leases state))))
+  (if (= lease 0)
+      state
+      (ledger-state (ledger-state-accounts state)
+                    (cons (list sender lease last-valid) (ledger-state-leases state)))))
 
 ; eval single transaction
 ; currently support algo and asset payment
@@ -103,7 +117,7 @@
                        (let ([state-2 (algo-move state-1 sender receiver crt fee amount)])
                          (if (not state-2)
                              #f
-                             (add-lease state-2 lease sender last-valid)))))]))] ; algo payment
+                             (add-lease state-2 sender lease last-valid)))))]))] ; algo payment
     [4 (let ([sender (txn-content-asset_sender txn)]
              [receiver (txn-content-asset_receiver txn)]
              [crt (txn-content-asset_close_to txn)]
