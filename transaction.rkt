@@ -79,12 +79,11 @@
   (ledger-state (ledger-state-accounts state)
                 (filter (λ (a) (>= (car (cdr a)) current-round)) (ledger-state-leases state))))
 
-; check whether '(sender lease ?) exist, #t if exist, #f if not 
-(define (lease-exist? state sender lease)
-  (not (empty? (filter
-                (λ (a) (and (= (car a) sender)
-                            (= (car (cdr a)) lease)))
-                (ledger-state-leases state)))))
+; return the lease with '(sender lease ?), #f if not exist 
+(define (find-lease state sender lease)
+  (memf (λ (a) (and (= (car a) sender)
+                    (= (car (cdr a)) lease)))
+        (ledger-state-leases state)))
   
 ; add a lease to state
 (define (add-lease state sender lease last-valid)
@@ -112,7 +111,7 @@
          (cond
            [(or (< current-round first-valid) (> current-round last-valid)) #f]
            [else (let ([state-1 (invalidate-leases state current-round)])
-                   (if (lease-exist? state-1 sender lease)
+                   (if (find-lease state-1 sender lease)
                        #f
                        (let ([state-2 (algo-move state-1 sender receiver crt fee amount)])
                          (if (not state-2)
@@ -130,7 +129,7 @@
          (cond
            [(or (< current-round first-valid) (> current-round last-valid)) #f]
            [else (let ([state-1 (invalidate-leases state current-round)])
-                   (if (lease-exist? state-1 sender lease)
+                   (if (find-lease state-1 sender lease)
                        #f
                        (let ([state-2 (asset-move state asset sender receiver crt fee amount)])
                          (if (not state-2)
