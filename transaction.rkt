@@ -138,18 +138,16 @@
     [else #f]))
 
 ; eval a transaction group with error
-(define (txn-group-eval-with-error account-universe current-round txn-group)
+(define (txn-group-eval-with-error state current-round txn-group)
   (if (empty? txn-group)
-      account-universe
+      state
       (let* ([txn (car txn-group)]
-             [result (txn-eval account-universe current-round txn)])
-        (if (not result)
-            #f
-            (txn-group-eval-with-error result current-round (cdr txn-group))))))
+             [result (txn-eval state current-round txn)])
+        (if result
+            (txn-group-eval-with-error result current-round (cdr txn-group))
+            #f))))
 
 ; eval a transaction group
-(define (txn-group-eval account-universe current-round txn-group)
-  (let ([result (txn-group-eval-with-error account-universe current-round txn-group)])
-    (if (not result)
-        account-universe ; roll-back if evaluate to #f
-        result)))
+(define (txn-group-eval state current-round txn-group)
+  (let ([result (txn-group-eval-with-error state current-round txn-group)])
+    (if result result state ))) ; roll-back if evaluate to #f
