@@ -150,4 +150,4 @@
 ; eval a transaction group
 (define (txn-group-eval state current-round txn-group)
   (let ([result (txn-group-eval-with-error state current-round txn-group)])
-    (if result result state ))) ; roll-back if evaluate to #f
+    (if result result state))) ; roll-back if evaluate to #f

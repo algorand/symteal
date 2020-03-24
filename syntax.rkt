@@ -71,6 +71,31 @@
 
 (struct teal-error (msg) #:transparent) ; this is not part of syntax
 
+;;; define enums, from https://github.com/algorand/go-algorand/tree/master/data/transactions/logic
+(define Sender 0)
+(define Fee 1)
+(define FirstValid 2)
+(define FirstValidTime 3)
+(define LastValid 4)
+(define Note 5)
+(define Lease 6)
+(define Receiver 7)
+(define Amount 8)
+(define CloseRemainderTo 9)
+(define VotePK 10)
+(define SelectionPK 11)
+(define VoteFirst 12)
+(define VoteLast 13)
+(define VoteKeyDilution 14)
+(define Type 15)
+(define TypeEnum 16)
+(define XferAsset 17)
+(define AssetAmount 18)
+(define AssetSender 19)
+(define AssetReceiver 20)
+(define AssetCloseTo 21)
+(define GroupIndex 22)
+(define TxID 23)
 
 (require syntax/parse/define)
 
