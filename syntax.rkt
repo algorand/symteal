@@ -40,7 +40,7 @@
 
 (struct len () #:transparent)
 
-(struct % () #:transparent)
+(struct mod () #:transparent)
 
 ;;; Loading values
 (struct int (value) #:transparent) ; pushes uint64 constant to unit constants heap
@@ -96,6 +96,13 @@
 (define AssetCloseTo 21)
 (define GroupIndex 22)
 (define TxID 23)
+
+; enums for global
+(define MinTxnFee 0)
+(define MinBalance 1)
+(define MaxTxnLife 2)
+(define ZeroAddress 3)
+(define GroupSize 4)
 
 (require syntax/parse/define)
 

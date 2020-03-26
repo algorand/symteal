@@ -163,6 +163,15 @@
                                           (cdr (cdr (context-stack cxt)))))))])
     (int-op cxt op)))
 
+; %
+(define (op-mod cxt)
+  (let ([op (lambda (cxt a b)
+              (if (= b 0)
+                  (add-err cxt 6) ; error-code 6: divided by 0
+                  (update-stack cxt (cons (stack-elmt (modulo a b) 0)
+                                          (cdr (cdr (context-stack cxt)))))))])
+    (int-op cxt op)))
+
 ; compare two numbers
 (define (int-comp cxt op)
   (let ([a (second-uint cxt)]
@@ -372,6 +381,7 @@
    (op-spec "-" op-minus '("Uint64" "Uint64") "Uint64")
    (op-spec "/" op-div '("Uint64" "Uint64") "Uint64")
    (op-spec "*" op-mul '("Uint64" "Uint64") "Uint64")
+   (op-spec "%" op-mod '("Uint64" "Uint64") "Uint64")
    (op-spec ">" op-gt '("Uint64" "Uint64") "Uint64")
    (op-spec "<" op-lt '("Uint64" "Uint64") "Uint64")
    (op-spec ">=" op-ge '("Uint64" "Uint64") "Uint64")
@@ -403,8 +413,10 @@
          [(keccak256) (eval-step (pc-increment (op-keccak256 cxt)))]
          [(err) (op-err cxt)] ; return now, no need recursion
          [(plus) (eval-step (pc-increment (op-plus cxt)))]
+         [(minus) (eval-step (pc-increment (op-minus cxt)))]
          [(div) (eval-step (pc-increment (op-div cxt)))]
          [(mul) (eval-step (pc-increment (op-mul cxt)))]
+         [(mod) (eval-step (pc-increment (op-mod cxt)))]
          [(gt) (eval-step (pc-increment (op-gt cxt)))]
          [(lt) (eval-step (pc-increment (op-lt cxt)))]
          [(ge) (eval-step (pc-increment (op-ge cxt)))]
