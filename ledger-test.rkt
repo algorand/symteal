@@ -1,23 +1,23 @@
 #lang racket
 
-(require rackunit rackunit/text-ui lens "transaction.rkt")
+(require rackunit rackunit/text-ui lens "ledger.rkt")
 
 (define-struct-lenses txn-content)
 (define-struct-lenses ledger-state)
 
 (define (asset-balance state asset account)
-  (list-ref (list-ref (ledger-state-accounts state) account) asset))
+  (list-ref (account-state-assets (list-ref (ledger-state-accounts state) account)) asset))
 
 (define (algo-balance state account)
-  (asset-balance state 0 account))
+  (account-state-balance (list-ref (ledger-state-accounts state) account)))
 
 (define mock-state
-  (ledger-state '((0 0 0)                     ;accounts
-                  (5000000 5000000 1000000)
-                  (8000000 8000000 8000000)
-                  (1000 3000000 4000000))
-                '((1 42 1000)
-                  (2 666 200))))
+  (ledger-state (list (account-state 0 '(0 0 0) '())                    ;accounts
+                      (account-state 5000000 '(5000000 5000000 1000000) '())
+                      (account-state 8000000 '(8000000 8000000 8000000) '())
+                      (account-state 1000 '(1000 3000000 4000000) '()))
+                (list '(1 42 1000)
+                      '(2 666 200))))
 
 ; type_enum: 1
 (define mock-algo-txn
@@ -35,10 +35,12 @@
                0 0 0 0 ;asset_sender asset_receiver asset_close_to tx_id
                ))
 
+(define mock-global-params
+  (global-params 0 0 1000 0))
 
 (define transaction-tests
   (test-suite
-   "Tests for transaction.rkt"
+   "Tests for ledger.rkt"
 
    (test-case
      "test algo move"
@@ -68,26 +70,26 @@
                            (lens-set txn-content-sender-lens mock-algo-txn 2)
                            1)
                  1000000))
-     (define state-1 (txn-eval mock-state 1000 txn-1))
+     (define state-1 (txn-eval mock-state 1000 txn-1 (list txn-1) 0 mock-global-params))
      (check-eq? (algo-balance state-1 1) 6000000)
      (check-eq? (algo-balance state-1 2) 6999000)
      (check-eq? (ledger-state-leases state-1) '())
 
      ; round not valid
-     (check-false (txn-eval mock-state 999 txn-1))
-     (check-false (txn-eval mock-state 2001 txn-1))
+     (check-false (txn-eval mock-state 999 txn-1 (list txn-1) 0 mock-global-params))
+     (check-false (txn-eval mock-state 2001 txn-1 (list txn-1) 0 mock-global-params))
      
      ; not enough balance
      (define txn-2
        (lens-set txn-content-amount-lens
                  (lens-set txn-content-sender-lens txn-1 3)
                  1))
-     (check-false (txn-eval mock-state 1000 txn-2))
+     (check-false (txn-eval mock-state 1000 txn-2 (list txn-1) 0 mock-global-params))
 
      ; close account
      (define txn-3
        (lens-set txn-content-close_remainder_to-lens txn-1 3))
-     (define state-3 (txn-eval mock-state 1000 txn-3))
+     (define state-3 (txn-eval mock-state 1000 txn-3 (list txn-3) 0 mock-global-params))
      (check-eq? (algo-balance state-3 2) 0)
      (check-eq? (algo-balance state-3 3) 7000000)
      (check-eq? (algo-balance state-3 1) 6000000)
@@ -99,32 +101,32 @@
                            (lens-set txn-content-asset_sender-lens mock-asset-txn 1)
                            3)
                  1000000))
-     (define state-4 (txn-eval mock-state 1000 txn-4))
+     (define state-4 (txn-eval mock-state 1000 txn-4 (list txn-4) 0 mock-global-params))
      (check-eq? (asset-balance state-4 2 1) 0)
      (check-eq? (asset-balance state-4 2 3) 5000000)
      (check-eq? (algo-balance state-4 1) 4999000)
 
      ; round not valid
-     (check-false (txn-eval mock-state 999 txn-4))
-     (check-false (txn-eval mock-state 2001 txn-4))
+     (check-false (txn-eval mock-state 999 txn-4 (list txn-4) 0 mock-global-params))
+     (check-false (txn-eval mock-state 2001 txn-4 (list txn-4) 0 mock-global-params))
 
      ; asset transaction fail since not enough fee
      (define txn-5
        (lens-set txn-content-fee-lens
                  (lens-set txn-content-asset_sender-lens txn-4 3)
                  1001))
-     (check-false (txn-eval mock-state 1000 txn-5))
+     (check-false (txn-eval mock-state 1000 txn-5 (list txn-5) 0 mock-global-params))
 
      ; asset transaction fail since not enough balance
      (define txn-6 (lens-set txn-content-asset_amount-lens txn-4 1000001))
-     (check-false (txn-eval mock-state 1000 txn-6))
+     (check-false (txn-eval mock-state 1000 txn-6 (list txn-6) 0 mock-global-params))
 
      ; asset close to
      (define txn-7
        (lens-set txn-content-asset_amount-lens
                  (lens-set txn-content-asset_close_to-lens txn-4 2)
                  500000))
-     (define state-7 (txn-eval mock-state 1000 txn-7))
+     (define state-7 (txn-eval mock-state 1000 txn-7 (list txn-7) 0 mock-global-params))
      (check-eq? (asset-balance state-7 2 1) 0)
      (check-eq? (asset-balance state-7 2 2) 8500000)
      (check-eq? (asset-balance state-7 2 3) 4500000)
@@ -148,14 +150,15 @@
                  1000000))
 
      ; group txn succeed
-     (define group-state-1 (txn-group-eval mock-state 1000 (list txn-1 txn-2)))
-     (check-equal? group-state-1 (txn-eval (txn-eval mock-state 1000 txn-1) 1000 txn-2))
+     (define group-state-1 (txn-group-eval mock-state 1000 (list txn-1 txn-2) mock-global-params))
+     (check-equal? group-state-1 (txn-eval (txn-eval mock-state 1000 txn-1 (list txn-1) 0 mock-global-params)
+                                           1000 txn-2 (list txn-2) 0 mock-global-params))
 
      ; group txn failed
      (define txn-3 (lens-set txn-content-asset_amount-lens txn-2 50000000))
-     (check-false (txn-group-eval-with-error mock-state 1000 (list txn-1 txn-3)))
-     (check-equal? mock-state (txn-group-eval mock-state 1000 (list txn-1 txn-3)))
-     (check-equal? mock-state (txn-group-eval mock-state 1000 (list txn-3 txn-1)))
+     (check-false (txn-group-eval-with-error mock-state 1000 (list txn-1 txn-3) 0 mock-global-params))
+     (check-equal? mock-state (txn-group-eval mock-state 1000 (list txn-1 txn-3) mock-global-params))
+     (check-equal? mock-state (txn-group-eval mock-state 1000 (list txn-3 txn-1) mock-global-params))
      )
    
    ))

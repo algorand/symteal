@@ -39,6 +39,17 @@
    (txn Fee)
    (int tmpl_fee)
    (le)
+   (land) ; is Payment and ok Fee
+   (txn CloseRemainderTo)
+   (global ZeroAddress)
+   (eq)
+   (txn Receiver)
+   (addr tmpl_rcv)
+   (eq)
+   (land)
+   (txn Amount)
+   (int tmpl_amt)
+   (eq)
    (land)
    (txn FirstValid)
    (int tmpl_period)
@@ -55,18 +66,7 @@
    (txn Lease)
    (byte tmpl_lease)
    (eq)
-   (land) ;  is Payment and ok Fee and on period and correct duration and good lease
-   (txn CloseRemainderTo)
-   (global ZeroAddress)
-   (eq)
-   (txn Receiver)
-   (addr tmpl_rcv)
-   (eq)
-   (land)
-   (txn Amount)
-   (int tmpl_amt)
-   (eq)
-   (land) ; no close and good Receiver and good amount
+   (land) ; on period and correct duration and good lease and no close and good Receiver and good amount
    (txn CloseRemainderTo)
    (addr tmpl_rcv)
    (eq)
@@ -76,12 +76,14 @@
    (land)
    (txn FirstValid)
    (int tmpl_timeout)
-   (gt)
+   (ge)
    (land)
    (txn Amount)
    (int 0)
    (eq)
    (land) ; good close to and after timeout and 0 Amount
-   (lor)  ; normal payment or close   
-   (land) ; (normal payment or close) and preamble checks 
-))   
+   (lor) ; normal payment or close
+   (land) ; (normal payment or close) and preamble checks
+   ))
+
+; now we prove that this program implement periodic payment
