@@ -1,6 +1,6 @@
 #lang racket
 
-(require rackunit rackunit/text-ui lens "ledger.rkt" "htlc.rkt")
+(require rackunit rackunit/text-ui lens "ledger.rkt" "htlc.rkt" "periodic-payment.rkt")
 
 (define-struct-lenses txn-content)
 (define-struct-lenses ledger-state)
@@ -185,6 +185,31 @@
      (define txn-2
        (lens-set txn-content-close_remainder_to-lens txn-1 2))
      (check-false (txn-eval logic-mock-state 1000 txn-2 (list txn-2) 0 mock-global-params))
+
+     ; periodic payment 
+     (define pp (periodic-payment 2 500 500 50000 42 10000 1000))
+     (define pp-mock-state (set-program mock-state 1 pp))
+     (define txn-3
+       (lens-set
+        txn-content-last_valid-lens
+        (lens-set txn-content-amount-lens
+                  (lens-set txn-content-lease-lens
+                            (lens-set txn-content-sender-lens
+                                      (lens-set txn-content-receiver-lens mock-algo-txn 2)
+                                      1)
+                            42)
+                  50000)
+        1500))
+     (define state-2 (txn-eval pp-mock-state 1000 txn-3 (list txn-3) 0 mock-global-params))
+     (check-eq? (algo-balance state-2 1) 4949000)
+     (check-eq? (algo-balance state-2 2) 8050000)
+     (define txn-3-1
+       (lens-set txn-content-first_valid-lens
+                 (lens-set txn-content-last_valid-lens txn-3 2000)
+                 1500))
+     (define state-3 (txn-eval state-2 1500 txn-3-1 (list txn-3-1) 0 mock-global-params))
+     (check-eq? (algo-balance state-3 1) 4898000)
+     (check-eq? (algo-balance state-3 2) 8100000)
      )
    
    ))
