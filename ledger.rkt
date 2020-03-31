@@ -1,6 +1,6 @@
 #lang rosette/safe
 
-(require "teal.rkt")
+(require "teal.rkt" "syntax.rkt")
 
 (provide (all-from-out "teal.rkt")
          (struct-out ledger-state)
@@ -175,6 +175,7 @@
             #f))))
 
 ; eval a transaction group
+
 (define (txn-group-eval state current-round txn-group global)
   (let ([result (txn-group-eval-with-error state current-round txn-group 0 global)])
     (if result result state))) ; roll-back if evaluate to #f

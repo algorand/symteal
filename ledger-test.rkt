@@ -1,9 +1,10 @@
 #lang racket
 
-(require rackunit rackunit/text-ui lens "ledger.rkt")
+(require rackunit rackunit/text-ui lens "ledger.rkt" "htlc.rkt")
 
 (define-struct-lenses txn-content)
 (define-struct-lenses ledger-state)
+(define-struct-lenses account-state)
 
 (define (asset-balance state asset account)
   (list-ref (account-state-assets (list-ref (ledger-state-accounts state) account)) asset))
@@ -11,6 +12,12 @@
 (define (algo-balance state account)
   (account-state-balance (list-ref (ledger-state-accounts state) account)))
 
+(define (set-program state account program)
+  (let ([p-lens (lens-compose account-state-program-lens
+                              (list-ref-lens account)
+                              ledger-state-accounts-lens)])
+    (lens-set p-lens state program)))
+            
 (define mock-state
   (ledger-state (list (account-state 0 '(0 0 0) '())                    ;accounts
                       (account-state 5000000 '(5000000 5000000 1000000) '())
@@ -38,7 +45,7 @@
 (define mock-global-params
   (global-params 0 0 1000 0))
 
-(define transaction-tests
+(define ledger-tests
   (test-suite
    "Tests for ledger.rkt"
 
@@ -160,9 +167,25 @@
      (check-equal? mock-state (txn-group-eval mock-state 1000 (list txn-1 txn-3) mock-global-params))
      (check-equal? mock-state (txn-group-eval mock-state 1000 (list txn-3 txn-1) mock-global-params))
      )
+
+   (test-case
+       "test logic sig txns"
+
+     (define htlc (htlc-contract 3 (keccak256-hash 42) 5000 2 5000))
+     (define logic-mock-state (set-program mock-state 1 htlc))
+     (define txn-1
+       (lens-set txn-content-args-lens
+                 (lens-set txn-content-sender-lens
+                           (lens-set txn-content-close_remainder_to-lens mock-algo-txn 3)
+                           1)
+                 `(42)))
+     (define state-1 (txn-eval logic-mock-state 1000 txn-1 (list txn-1) 0 mock-global-params))
+     (check-eq? (algo-balance state-1 1) 0)
+     (check-eq? (algo-balance state-1 3) 5000000)
+     )
    
    ))
 
-(run-tests transaction-tests)
+(run-tests ledger-tests)
   
   
