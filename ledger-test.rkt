@@ -182,6 +182,9 @@
      (define state-1 (txn-eval logic-mock-state 1000 txn-1 (list txn-1) 0 mock-global-params))
      (check-eq? (algo-balance state-1 1) 0)
      (check-eq? (algo-balance state-1 3) 5000000)
+     (define txn-2
+       (lens-set txn-content-close_remainder_to-lens txn-1 2))
+     (check-false (txn-eval logic-mock-state 1000 txn-2 (list txn-2) 0 mock-global-params))
      )
    
    ))

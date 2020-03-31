@@ -111,6 +111,7 @@
 ; when a transaction failed, it did nothing
 ; when a transaction suceed, it invalides expired leases, then, adds new lease if necessary 
 ; TODO: support more asset txn type, e.g. freeze and clawback
+; TODO: suppor min balance
 (define (txn-eval state current-round txn txn-group index global)
   (let ([txn-eval-params (eval-params txn txn-group global index)])
     (number-match
