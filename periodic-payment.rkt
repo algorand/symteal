@@ -59,4 +59,4 @@
    (land) ; (normal payment or close) and preamble checks
    ))
 
-; now we prove that this program implement periodic payment
+

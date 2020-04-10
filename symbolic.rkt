@@ -1,6 +1,6 @@
 #lang rosette/safe
 
-(require "teal.rkt" "config.rkt")
+(require "teal.rkt" "ledger.rkt" "config.rkt")
 (provide (all-defined-out))
 
 ; define symbolic values
@@ -8,7 +8,7 @@
 ; sender
 (define (sym-sender)
   (define-symbolic* sender integer?)
-  (assert (>= sender 0))
+  (assert (> sender 0))
   (assert (< sender universe-size))
   sender)
 
@@ -160,8 +160,30 @@
 ; generate accounts
 ; the account universe is a list of
 ; '(algo-balance, asset-balance-1, ... , asset-balance-n)
-(define gen-sym-account-universe
-  (r:build-list universe-size (λ _  (cons (sym-algo-balance)
-                                          (r:build-list asset-capacity (λ _ (sym-asset-balance)))))))
+(define (gen-sym-account-states)
+  (r:build-list universe-size
+                (λ _  (account-state (sym-algo-balance)
+                                     (r:build-list asset-capacity (λ _ (sym-asset-balance)))
+                                     (list)))))
 
+; generate symbolic global params
+(define (gen-sym-global-params)
+  (define-symbolic* min-txn-fee integer?)
+  (define-symbolic* min-balance integer?)
+  (define-symbolic* max-txn-life integer?)
+  (define-symbolic* zero-address integer?)
+  (assert (&& (>= zero-address 0)
+              (< zero-address universe-size)))
+  (global-params min-txn-fee min-balance max-txn-life zero-address))
 
+; generate symbolic round number
+(define (gen-sym-round)
+  (define-symbolic* current-round integer?)
+  current-round)
+
+; generate symbolic lease
+(define (gen-sym-lease)
+  (define-symbolic* lease-sender integer?)
+  (define-symbolic* lease-value integer?)
+  (define-symbolic* lease-last-valid integer?)
+  (list lease-sender lease-value lease-last-valid))

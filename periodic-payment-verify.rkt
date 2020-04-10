@@ -1,6 +1,6 @@
 #lang rosette/safe
 
-(require "ledger.rkt")
+(require "ledger.rkt" "symbolic.rkt")
 
 ; define tempalte variables
 ; - tmpl_rcv : address which is authorized to make withdrawals
@@ -30,3 +30,11 @@
 ; - tmpl_fee: maximum fee used by the withdrawal transactions
 ; (define tmpl_fee 4000)
 (define-symbolic tmpl_fee integer?)
+
+; now we prove that this program implement periodic payment
+
+(define sym-ledger-state
+  (ledger-state (gen-sym-account-states) (list)))
+
+(define pp-precondition
+  
