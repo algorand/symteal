@@ -8,3 +8,5 @@
 
 ; currently unused
 (define group-capacity 4)
+
+(define algo-supply 10000000000)

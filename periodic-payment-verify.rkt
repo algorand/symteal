@@ -36,5 +36,5 @@
 (define sym-ledger-state
   (ledger-state (gen-sym-account-states) (list)))
 
-(define pp-precondition
+
   

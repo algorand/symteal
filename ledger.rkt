@@ -9,7 +9,9 @@
          asset-move
          txn-eval
          txn-group-eval-with-error
-         txn-group-eval)
+         txn-group-eval
+         total-algos
+         total-asset)
 
 ; account state:
 ; balance: algo balance
@@ -179,3 +181,13 @@
 (define (txn-group-eval state current-round txn-group global)
   (let ([result (txn-group-eval-with-error state current-round txn-group 0 global)])
     (if result result state))) ; roll-back if evaluate to #f
+
+; computing total algos
+(define (total-algos state)
+  (foldl + 0
+         (map account-state-balance (ledger-state-accounts state))))
+
+; computing total supply of a particular asset
+(define (total-asset state asset)
+  (foldl + 0
+         (map (λ (ac) (list-ref (account-state-assets ac) asset)) (ledger-state-accounts state))))

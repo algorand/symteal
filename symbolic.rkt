@@ -187,3 +187,8 @@
   (define-symbolic* lease-value integer?)
   (define-symbolic* lease-last-valid integer?)
   (list lease-sender lease-value lease-last-valid))
+
+; generate symbolic ledger state
+; TODO: maybe use choices over variable sized leases
+(define sym-ledger-state
+  (ledger-state (gen-sym-account-states) (list (gen-sym-lease) (gen-sym-lease))))
