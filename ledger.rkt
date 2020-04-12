@@ -24,6 +24,39 @@
 ; leases: list of (sender, lease, lastValid)
 (struct ledger-state (accounts leases)  #:transparent)
 
+(define (state-of-account state account)
+  (list-ref (ledger-state-accounts state) account))
+
+; algo balance of an account
+(define (algo-balance state account)
+  (account-state-balance (state-of-account state account)))
+
+; asset balance of an account's certain asset
+(define (asset-balance state account asset)
+  (list-ref (account-state-assets (state-of-account state account)) asset))
+
+; update algo balance with delta
+(define (update-balance state account delta)
+  (ledger-state (list-set (ledger-state-accounts state)
+                          account
+                          (account-state
+                           (+ (algo-balance state account) delta)
+                           (account-state-assets (state-of-account state account))
+                           (account-state-program (state-of-account state account))))
+                (ledger-state-leases state)))
+
+; update asset balance with delta
+(define (update-asset state account asset delta)
+  (ledger-state (list-set (ledger-state-accounts state)
+                          account
+                          (account-state (algo-balance state account)
+                                         (list-set (account-state-assets
+                                                    (state-of-account state account))
+                                                   asset
+                                                   (+ (asset-balance state account asset) delta))
+                                         (account-state-program (state-of-account state account))))
+                (ledger-state-leases state)))
+
 ; The execution of a transaction group is defined as the change
 ; of the account state from S to S'.
 ; Transactions in an atomic transaction group will be executed sequentially.
@@ -35,59 +68,27 @@
 
 ; move algo
 (define (algo-move state sender receiver close fee amount)
-  (let* ([state-of-account (λ (state account) (list-ref (ledger-state-accounts state) account))]
-         [account-balance (λ (state account) (account-state-balance (state-of-account state account)))] 
-         [update-balance (λ (state account delta)
-                           (ledger-state (list-set (ledger-state-accounts state)
-                                                   account
-                                                   (account-state
-                                                    (+ (account-balance state account) delta)
-                                                    (account-state-assets (state-of-account state account))
-                                                    (account-state-program (state-of-account state account))))
-                                         (ledger-state-leases state)))])
-    (if (< (account-balance state sender) (+ amount fee))
-        #f ; move didn't happen if sender balance cannot afford amount plus fee
-        (if (= 0 close)
-            (let ([state-1 (update-balance state sender (- (+ amount fee)))])
-              (update-balance state-1 receiver amount))
-            (let* ([state-1 (update-balance state sender (- (account-balance state sender)))]
-                   [state-2 (update-balance state-1 receiver amount)])
-              (update-balance state-2 close (- (account-balance state sender) amount fee)))))))
+  (if (< (algo-balance state sender) (+ amount fee))
+      #f ; move didn't happen if sender balance cannot afford amount plus fee
+      (if (= 0 close)
+          (let ([state-1 (update-balance state sender (- (+ amount fee)))])
+            (update-balance state-1 receiver amount))
+          (let* ([state-1 (update-balance state sender (- (algo-balance state sender)))]
+                 [state-2 (update-balance state-1 receiver amount)])
+            (update-balance state-2 close (- (algo-balance state sender) amount fee))))))
 
 ; move asset
 (define (asset-move state asset sender receiver close fee amount)
-  (let* ([state-of-account (λ (state account) (list-ref (ledger-state-accounts state) account))]
-         [account-balance (λ (state account) (account-state-balance (state-of-account state account)))]
-         [update-balance (λ (state account delta)
-                           (ledger-state (list-set (ledger-state-accounts state)
-                                                   account
-                                                   (account-state
-                                                    (+ (account-balance state account) delta)
-                                                    (account-state-assets (state-of-account state account))
-                                                    (account-state-program (state-of-account state account))))
-                                         (ledger-state-leases state)))]
-         [asset-balance (λ (state account asset)
-                          (list-ref (account-state-assets (state-of-account state account)) asset))]
-         [update-asset (λ (state account asset delta)
-                         (ledger-state (list-set (ledger-state-accounts state)
-                                                 account
-                                                 (account-state
-                                                  (account-balance state account)
-                                                  (list-set (account-state-assets (state-of-account state account))
-                                                            asset
-                                                            (+ (asset-balance state account asset) delta))
-                                                  (account-state-program (state-of-account state account))))
-                                       (ledger-state-leases state)))])
-    (if (or (< (asset-balance state sender asset) amount) (< (account-balance state sender) fee))
-        #f ; move didn't happen if sender asset balance cannot cover amount or sender algo balance cannot cover fee
-        (if (= 0 close)
-            (let* ([state-1 (update-balance state sender (- fee))]
-                   [state-2 (update-asset state-1 sender asset (- amount))])
-              (update-asset state-2 receiver asset amount))
-            (let* ([state-1 (update-balance state sender (- fee))]
-                   [state-2 (update-asset state-1 sender asset (- (asset-balance state sender asset)))]
-                   [state-3 (update-asset state-2 receiver asset amount)])
-            (update-asset state-3 close asset (- (asset-balance state sender asset) amount)))))))
+  (if (or (< (asset-balance state sender asset) amount) (< (algo-balance state sender) fee))
+      #f ; move didn't happen if sender asset balance cannot cover amount or sender algo balance cannot cover fee
+      (if (= 0 close)
+          (let* ([state-1 (update-balance state sender (- fee))]
+                 [state-2 (update-asset state-1 sender asset (- amount))])
+            (update-asset state-2 receiver asset amount))
+          (let* ([state-1 (update-balance state sender (- fee))]
+                 [state-2 (update-asset state-1 sender asset (- (asset-balance state sender asset)))]
+                 [state-3 (update-asset state-2 receiver asset amount)])
+            (update-asset state-3 close asset (- (asset-balance state sender asset) amount))))))
               
 ; invalidate leases
 (define (invalidate-leases state current-round)
