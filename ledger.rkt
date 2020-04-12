@@ -2,16 +2,8 @@
 
 (require "teal.rkt" "syntax.rkt")
 
-(provide (all-from-out "teal.rkt")
-         (struct-out ledger-state)
-         (struct-out account-state)
-         algo-move
-         asset-move
-         txn-eval
-         txn-group-eval-with-error
-         txn-group-eval
-         total-algos
-         total-asset)
+(provide (all-from-out "teal.rkt") (struct-out ledger-state)
+         (struct-out account-state) (all-defined-out))
 
 ; account state:
 ; balance: algo balance
