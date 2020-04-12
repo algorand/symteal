@@ -3,20 +3,6 @@
 (require rackunit rackunit/text-ui lens "ledger.rkt" "htlc.rkt" "periodic-payment.rkt")
 
 (define-struct-lenses txn-content)
-(define-struct-lenses ledger-state)
-(define-struct-lenses account-state)
-
-(define (asset-balance state asset account)
-  (list-ref (account-state-assets (list-ref (ledger-state-accounts state) account)) asset))
-
-(define (algo-balance state account)
-  (account-state-balance (list-ref (ledger-state-accounts state) account)))
-
-(define (set-program state account program)
-  (let ([p-lens (lens-compose account-state-program-lens
-                              (list-ref-lens account)
-                              ledger-state-accounts-lens)])
-    (lens-set p-lens state program)))
             
 (define mock-state
   (ledger-state (list (account-state 0 '(0 0 0) '())                    ;accounts
@@ -62,7 +48,7 @@
        "test asset move"
      (define state-1
        (asset-move mock-state 1 2 1 0 1000 1000000))
-     (check-eq? (asset-balance state-1 1 2) 7000000)
+     (check-eq? (asset-balance state-1 2 1) 7000000)
      (check-eq? (algo-balance state-1 2) 7999000)
      (check-not-false (asset-move mock-state 1 3 3 0 1000 3000000))
      (check-false (asset-move mock-state 2 3 3 0 1001 0))
@@ -109,8 +95,8 @@
                            3)
                  1000000))
      (define state-4 (txn-eval mock-state 1000 txn-4 (list txn-4) 0 mock-global-params))
-     (check-eq? (asset-balance state-4 2 1) 0)
-     (check-eq? (asset-balance state-4 2 3) 5000000)
+     (check-eq? (asset-balance state-4 1 2) 0)
+     (check-eq? (asset-balance state-4 3 2) 5000000)
      (check-eq? (algo-balance state-4 1) 4999000)
 
      ; round not valid
@@ -134,9 +120,9 @@
                  (lens-set txn-content-asset_close_to-lens txn-4 2)
                  500000))
      (define state-7 (txn-eval mock-state 1000 txn-7 (list txn-7) 0 mock-global-params))
-     (check-eq? (asset-balance state-7 2 1) 0)
+     (check-eq? (asset-balance state-7 1 2) 0)
      (check-eq? (asset-balance state-7 2 2) 8500000)
-     (check-eq? (asset-balance state-7 2 3) 4500000)
+     (check-eq? (asset-balance state-7 3 2) 4500000)
      (check-eq? (algo-balance state-7 1) 4999000))
 
    (test-case
