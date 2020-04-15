@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.com/algorand/symteal.svg?branch=master)](https://travis-ci.com/algorand/symteal)
 # Symteal
 
 Symteal is a symbolic execution engine for Algorand Smart Contract and Transactions
