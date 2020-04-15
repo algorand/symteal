@@ -70,15 +70,46 @@
 (assert (>= start-round 0))
 
 ; initial balance of the escrow account
-;(define init-amount
-;   (* (ceiling (/ tmpl_timeout tmpl_period)) tmpl_amount))
+(define init-amount
+   (* (ceiling (/ tmpl_timeout tmpl_period)) tmpl_amt))
 
-; periodic payment precondition
-; (define (periodic-payment-precondition state current-round)
-;  (assert (&& (>= (algo-balance state escrow-account)
-                 
+; periodic payment account invariant
+; s₀: initial balance in the account
+; r₀: starting round
+; r: current round
+; p: period
+; a: amount of each payment
+(define (pp-lower-bound s₀ r₀ r p a)
+  (- s₀ (* (ceiling (/ (- r r₀) p)) a)))
+
+; unfortunately, this cannot be directly used as a loop invariant
+; we need to strengthen it
+; e: escrow address
+(define (pp-invariant state s₀ r₀ r p a e)
+  (assert (|| (&& (= (modulo (- r r₀) p) 0) ; case 1: where withdraw could happen
+                   (>= (algo-balance state e) (pp-lower-bound s₀ r₀ r p a)))
+              (&& (! (= (modulo (- r r₀) p) 0))
+                  (|| (>= (algo-balance state e) (+ (pp-lower-bound s₀ r₀ r p a) e))
+                      (&& (>= (algo-balance state e) (pp-lower-bound s₀ r₀ r p a))
+                          (lease-valid? state e tmpl_lease (* (ceiling (/ (- r r₀) p)) p))))))))
+
+(define-symbolic current-round integer?)
+(assert (>= current-round start-round))
+(assert (<= current-round tmpl_timeout))
+
+; assert pp invariant
+(pp-invariant sym-ledger-state init-amount start-round current-round tmpl_period tmpl_amt escrow-account)
+
+(define sym-txn
+  (gen-sym-txn (list)))
+
+(define result-state
+  (txn-group-eval sym-ledger-state current-round (list sym-txn) (gen-sym-global-params)))
+
 ; assert ledger precondition
 (ledger-precondition sym-ledger-state)
+
+(verify (pp-invariant sym-ledger-state init-amount start-round (+ 1 current-round) tmpl_period tmpl_amt escrow-account))
 
 
   

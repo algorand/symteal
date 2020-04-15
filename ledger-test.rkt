@@ -56,9 +56,9 @@
 
    (test-case
        "test valid lease"
-     (check-true (valid-lease? mock-state 1 42 999))
-     (check-true (valid-lease? mock-state 2 666 200))
-     (check-false (valid-lease? mock-state 2 666 201)))
+     (check-true (lease-valid? mock-state 1 42 999))
+     (check-true (lease-valid? mock-state 2 666 200))
+     (check-false (lease-valid? mock-state 2 666 201)))
    
    (test-case
        "test txn eval"

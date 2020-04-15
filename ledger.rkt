@@ -198,7 +198,7 @@
 ; check leases
 ; check if there is a lease by sender is valid in valid-round
 ; return #t or #f
-(define (valid-lease? state sender lease valid-round)
+(define (lease-valid? state sender lease valid-round)
   (not (false? (memf (λ (a) (and (= (car a) sender)
                                  (= (cadr a) lease)
                                  (>= (caddr a) valid-round)))
