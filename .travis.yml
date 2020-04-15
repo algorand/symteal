@@ -17,7 +17,7 @@ before_install:
   - export PATH="${RACKET_DIR}/bin:${PATH}"
 
 install:
-  - raco pkg install rosette
+  - raco pkg install --batch rosette
   - raco pkg install lens
 
 script:
