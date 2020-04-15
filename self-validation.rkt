@@ -16,7 +16,7 @@
 
 ; compute the symbolic output
 (define result-ledger-state
-  (txn-group-eval sym-ledger-state (gen-sym-round) (list sym-txn) (gen-sym-global-params)))
+  (txn-group-eval (gen-sym-ledger-state) (gen-sym-round) (list sym-txn) (gen-sym-global-params)))
 
 ; now check the property, expect unsat
 (ledger-precondition)

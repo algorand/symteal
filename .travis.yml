@@ -1,0 +1,25 @@
+language: c
+sudo: false
+
+env:
+  global:
+    - RACKET_DIR=~/racket
+  matrix:
+    - RACKET_VERSION=7.0  # Our minimum supported version
+    - RACKET_VERSION=RELEASE
+
+matrix:
+  fast_finish: true
+
+before_install:
+  - git clone https://github.com/greghendershott/travis-racket.git
+  - cat travis-racket/install-racket.sh | bash # pipe to bash not sh!
+  - export PATH="${RACKET_DIR}/bin:${PATH}"
+
+install:
+  - raco pkg install rosette
+  - raco pkg install lens
+
+script:
+  - time raco make ledger-test.rkt
+  - raco test ledger-test.rkt
