@@ -18,7 +18,7 @@ before_install:
 
 install:
   - raco pkg install --auto rosette
-  - raco pkg install lens
+  - raco pkg install --auto lens
 
 script:
   - time raco make ledger-test.rkt
