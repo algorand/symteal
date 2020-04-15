@@ -55,6 +55,12 @@
      (check-false (asset-move mock-state 2 3 3 0 1000 4000001)))
 
    (test-case
+       "test valid lease"
+     (check-true (valid-lease? mock-state 1 42 999))
+     (check-true (valid-lease? mock-state 2 666 200))
+     (check-false (valid-lease? mock-state 2 666 201)))
+   
+   (test-case
        "test txn eval"
      ; algo transaction succeed
      (define txn-1
@@ -197,7 +203,7 @@
      (check-eq? (algo-balance state-3 1) 4898000)
      (check-eq? (algo-balance state-3 2) 8100000)
      )
-   
+ 
    ))
 
 (run-tests ledger-tests)

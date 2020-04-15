@@ -1,6 +1,6 @@
 #lang rosette/safe
 
-(require "teal.rkt" "syntax.rkt")
+(require lens "teal.rkt" "syntax.rkt")
 
 (provide (all-from-out "teal.rkt") (struct-out ledger-state)
          (struct-out account-state) (all-defined-out))
@@ -184,3 +184,22 @@
 (define (total-asset state asset)
   (foldl + 0
          (map (λ (ac) (list-ref (account-state-assets ac) asset)) (ledger-state-accounts state))))
+
+(define-struct-lenses ledger-state)
+(define-struct-lenses account-state)
+
+; set a teal program as an account's escrow logic
+(define (set-program state account program)
+  (let ([p-lens (lens-compose account-state-program-lens
+                              (list-ref-lens account)
+                              ledger-state-accounts-lens)])
+    (lens-set p-lens state program)))
+
+; check leases
+; check if there is a lease by sender is valid in valid-round
+; return #t or #f
+(define (valid-lease? state sender lease valid-round)
+  (not (false? (memf (λ (a) (and (= (car a) sender)
+                                 (= (cadr a) lease)
+                                 (>= (caddr a) valid-round)))
+                     (ledger-state-leases state)))))

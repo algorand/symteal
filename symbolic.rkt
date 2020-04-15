@@ -155,7 +155,7 @@
 (require (only-in racket [build-list r:build-list]))
 
 ; generate symbolic transactions with indices
-(define sym-txns-with-indices (r:build-list 16 (λ (i) (cons (gen-sym-txn '()) i))))
+(define (gen-sym-txns-with-indices) (r:build-list group-capacity (λ (i) (cons (gen-sym-txn '()) i))))
 
 ; generate accounts
 ; the account universe is a list of
@@ -190,5 +190,5 @@
 
 ; generate symbolic ledger state
 ; TODO: maybe use choices over variable sized leases
-(define sym-ledger-state
+(define (gen-sym-ledger-state)
   (ledger-state (gen-sym-account-states) (list (gen-sym-lease) (gen-sym-lease))))

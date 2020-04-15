@@ -113,7 +113,7 @@
 (define-symbolic group-size integer?)
 
 (define txn-group-with-indices
-  (take sym-txns-with-indices group-size))
+  (take (gen-sym-txns-with-indices) group-size))
 
 (define mock-global-params
   (global-params 1000 1000 1000 0))
