@@ -208,5 +208,5 @@
  
    ))
 
-;(run-tests ledger-tests)
+(run-tests ledger-tests)
 
