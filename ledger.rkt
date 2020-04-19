@@ -1,9 +1,12 @@
 #lang rosette/safe
 
-(require lens "teal.rkt" "syntax.rkt")
+(require lens "teal.rkt" "syntax.rkt" "config.rkt")
 
 (provide (all-from-out "teal.rkt") (struct-out ledger-state)
          (struct-out account-state) (all-defined-out))
+
+(require (only-in racket
+                  [println r:println]))
 
 ; account state:
 ; balance: algo balance
@@ -130,10 +133,20 @@
                                             #f
                                             (add-lease state-2 sender lease last-valid)))))])])
             (if (empty? program)
-                result
+                (begin (if symteal-debug
+                           (r:println "teal empty")
+                           void)
+                       result)
                 (if (teal-eval (context txn-eval-params (list) program 0 0))
-                    result
-                    #f))))]
+                    (begin
+                      (if symteal-debug
+                          (r:println "teal eval true")
+                          void)
+                      result)
+                    (begin (if symteal-debug
+                               (r:println "teal eval false")
+                               void)
+                               #f)))))]
     [4 (let ([sender (txn-content-asset_sender txn)]
              [receiver (txn-content-asset_receiver txn)]
              [crt (txn-content-asset_close_to txn)]

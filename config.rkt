@@ -14,3 +14,5 @@
 (define algo-supply 10000000000)
 
 (define asset-supply-cap 10000000000)
+
+(define symteal-debug #f)

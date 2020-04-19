@@ -152,7 +152,9 @@
   asset-balance)
 
 ; this is safe :)
-(require (only-in racket [build-list r:build-list]))
+(require (only-in racket
+                  [build-list r:build-list]
+                  [for r:for]))
 
 ; generate symbolic transactions with indices
 (define (gen-sym-txns-with-indices) (r:build-list group-capacity (λ (i) (cons (gen-sym-txn '()) i))))
@@ -192,3 +194,16 @@
 ; TODO: maybe use choices over variable sized leases
 (define (gen-sym-ledger-state)
   (ledger-state (gen-sym-account-states) (list (gen-sym-lease) (gen-sym-lease))))
+
+; general precondition of ledger state
+; total algobalance is in (0, algosupply]
+; total assetbalance is in (0, asset-supply-cap]
+(define (ledger-precondition state)
+  (begin
+    (r:for ([i (r:build-list asset-capacity (λ (e) e))])
+           (let ([as (total-asset state i)])
+             (assert (&& (> as 0)
+                         (<= as asset-supply-cap)))))
+    (let ([ag (total-algos state)])
+      (assert (&& (> ag 0)
+                  (<= ag algo-supply))))))
