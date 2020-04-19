@@ -62,28 +62,32 @@
 ; will be rolled back to S.
 
 ; move algo
-(define (algo-move state sender receiver close fee amount)
+(define (algo-move state zero-address sender receiver close fee amount)
   (if (< (algo-balance state sender) (+ amount fee))
       #f ; move didn't happen if sender balance cannot afford amount plus fee
       (if (= 0 close)
-          (let ([state-1 (update-balance state sender (- (+ amount fee)))])
-            (update-balance state-1 receiver amount))
+          (let* ([state-1 (update-balance state sender (- (+ amount fee)))]
+                 [state-2 (update-balance state-1 zero-address fee)])
+            (update-balance state-2 receiver amount))
           (let* ([state-1 (update-balance state sender (- (algo-balance state sender)))]
-                 [state-2 (update-balance state-1 receiver amount)])
-            (update-balance state-2 close (- (algo-balance state sender) amount fee))))))
+                 [state-2 (update-balance state-1 receiver amount)]
+                 [state-3 (update-balance state-2 zero-address fee)])
+            (update-balance state-3 close (- (algo-balance state sender) amount fee))))))
 
 ; move asset
-(define (asset-move state asset sender receiver close fee amount)
+(define (asset-move state zero-address asset sender receiver close fee amount)
   (if (or (< (asset-balance state sender asset) amount) (< (algo-balance state sender) fee))
       #f ; move didn't happen if sender asset balance cannot cover amount or sender algo balance cannot cover fee
       (if (= 0 close)
           (let* ([state-1 (update-balance state sender (- fee))]
-                 [state-2 (update-asset state-1 sender asset (- amount))])
-            (update-asset state-2 receiver asset amount))
+                 [state-2 (update-balance state-1 zero-address fee)]
+                 [state-3 (update-asset state-2 sender asset (- amount))])
+            (update-asset state-3 receiver asset amount))
           (let* ([state-1 (update-balance state sender (- fee))]
                  [state-2 (update-asset state-1 sender asset (- (asset-balance state sender asset)))]
-                 [state-3 (update-asset state-2 receiver asset amount)])
-            (update-asset state-3 close asset (- (asset-balance state sender asset) amount))))))
+                 [state-3 (update-asset state-2 receiver asset amount)]
+                 [state-4 (update-balance state-3 zero-address fee)])
+            (update-asset state-4 close asset (- (asset-balance state sender asset) amount))))))
               
 ; invalidate leases
 (define (invalidate-leases state current-round)
@@ -111,7 +115,8 @@
 ; TODO: support more asset txn type, e.g. freeze and clawback
 ; TODO: suppor min balance
 (define (txn-eval state current-round txn txn-group index global)
-  (let ([txn-eval-params (eval-params txn txn-group global index)])
+  (let ([txn-eval-params (eval-params txn txn-group global index)]
+        [zero-address (global-params-zero_address global)])
     (number-match
      (txn-content-type_enum txn)
      [1 (let ([sender (txn-content-sender txn)]
@@ -128,7 +133,7 @@
                           [else (let ([state-1 (invalidate-leases state current-round)])
                                   (if (find-lease state-1 sender lease)
                                       #f
-                                      (let ([state-2 (algo-move state-1 sender receiver crt fee amount)])
+                                      (let ([state-2 (algo-move state-1 zero-address sender receiver crt fee amount)])
                                         (if (not state-2)
                                             #f
                                             (add-lease state-2 sender lease last-valid)))))])])
@@ -162,7 +167,7 @@
                          [else (let ([state-1 (invalidate-leases state current-round)])
                                  (if (find-lease state-1 sender lease)
                                      #f
-                                     (let ([state-2 (asset-move state asset sender receiver crt fee amount)])
+                                     (let ([state-2 (asset-move state zero-address asset sender receiver crt fee amount)])
                                        (if (not state-2)
                                            #f
                                            (add-lease state-2 lease sender last-valid)))))])])

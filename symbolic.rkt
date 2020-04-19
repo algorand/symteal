@@ -15,11 +15,13 @@
 ; fee
 (define (sym-fee)
   (define-symbolic* fee integer?)
+  (assert (>= fee 0))
   fee)
 
 ; first valid
 (define (sym-fv)
   (define-symbolic* first-valid integer?)
+  (assert (>= first-valid 0))
   first-valid)
 
 ; first valid time
@@ -30,6 +32,7 @@
 ; last valid
 (define (sym-lv)
   (define-symbolic* last-valid integer?)
+  (assert (>= last-valid 0))
   last-valid)
 
 ; note

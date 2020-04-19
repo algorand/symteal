@@ -38,18 +38,20 @@
    (test-case
      "test algo move"
      (define state-1
-       (algo-move mock-state 2 0 0 1000 1000000))
+       (algo-move mock-state 0 2 1 0 1000 1000000))
      (check-eq? (algo-balance state-1 2) 6999000)
-     (check-not-false (algo-move mock-state 3 3 0 1000 0))
-     (check-false (algo-move mock-state 3 3 0 1001 0))
-     (check-false (algo-move mock-state 3 3 0 0 1001)))
+     (check-eq? (algo-balance state-1 0) 1000)
+     (check-not-false (algo-move mock-state 0 3 3 0 1000 0))
+     (check-false (algo-move mock-state 0 3 3 0 1001 0))
+     (check-false (algo-move mock-state 0 3 3 0 0 1001)))
 
    (test-case
        "test asset move"
      (define state-1
-       (asset-move mock-state 1 2 1 0 1000 1000000))
+       (asset-move mock-state 0 1 2 1 0 1000 1000000))
      (check-eq? (asset-balance state-1 2 1) 7000000)
      (check-eq? (algo-balance state-1 2) 7999000)
+     (check-eq? (algo-balance state-1 0) 1000)
      (check-not-false (asset-move mock-state 1 3 3 0 1000 3000000))
      (check-false (asset-move mock-state 2 3 3 0 1001 0))
      (check-false (asset-move mock-state 2 3 3 0 1000 4000001)))
@@ -206,6 +208,5 @@
  
    ))
 
-(run-tests ledger-tests)
-  
-  
+;(run-tests ledger-tests)
+

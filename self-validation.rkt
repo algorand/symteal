@@ -1,6 +1,6 @@
-#lang rosette/safe
+#lang rosette
 
-(require "ledger.rkt" "symbolic.rkt" "config.rkt")
+(require "ledger.rkt" "symbolic.rkt" "config.rkt" rackunit rackunit/text-ui rosette/lib/roseunit)
 
 ; We verify several safety property of the implemented racket verifier itself:
 ; 1. After a transaction, the total amount of Algos in the system should be unchanged
@@ -14,20 +14,35 @@
 (define sym-txn
   (gen-sym-txn (list)))
 
-;(define sym-ledger-state
-;  (gen-sym-ledger-state))
+(define sym-ledger-state
+  (gen-sym-ledger-state))
 
 ; compute the symbolic output
 (define result-ledger-state
   (txn-group-eval sym-ledger-state (gen-sym-round) (list sym-txn) (gen-sym-global-params)))
 
-; now check the property, expect unsat
-(ledger-precondition)
-(verify (= (total-algos sym-ledger-state)
-           (total-algos result-ledger-state)))
+(define-syntax-rule (check-verify pred test)
+  (let ([sol (with-handlers ([exn:fail? (const (unsat))])
+               test)])
+    (check-true (pred sol) (format "not ~a for ~a: ~a" (quote pred) (quote test) sol))))
 
-(define-symbolic asset integer?)
-(assert (>= asset 0))
-(assert (< asset asset-capacity))
-(verify (= (total-asset sym-ledger-state asset)
-           (total-asset result-ledger-state asset)))
+; now check the property, expect unsat
+;(define ledger-safety-tests
+;  (test-suite+
+;   "ledger safety test"
+(ledger-precondition)
+(define sol (verify (assert (= (total-algos sym-ledger-state)
+                               (total-algos result-ledger-state)))))
+
+(print sol)
+(evaluate sym-txn sol)
+(evaluate sym-ledger-state sol)
+
+;(define-symbolic asset integer?)
+;(assert (>= asset 0))
+;(assert (< asset asset-capacity))
+;(verify (assert (= (total-asset sym-ledger-state asset)
+;                   (total-asset result-ledger-state asset))))
+;   ))
+
+;(run-tests ledger-safety-tests)
