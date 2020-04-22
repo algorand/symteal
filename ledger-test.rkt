@@ -52,9 +52,9 @@
      (check-eq? (asset-balance state-1 2 1) 7000000)
      (check-eq? (algo-balance state-1 2) 7999000)
      (check-eq? (algo-balance state-1 0) 1000)
-     (check-not-false (asset-move mock-state 1 3 3 0 1000 3000000))
-     (check-false (asset-move mock-state 2 3 3 0 1001 0))
-     (check-false (asset-move mock-state 2 3 3 0 1000 4000001)))
+     (check-not-false (asset-move mock-state 0 1 3 3 0 1000 3000000))
+     (check-false (asset-move mock-state 0 2 3 3 0 1001 0))
+     (check-false (asset-move mock-state 0 2 3 3 0 1000 4000001)))
 
    (test-case
        "test valid lease"
