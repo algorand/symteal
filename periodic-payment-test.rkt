@@ -1,6 +1,6 @@
 #lang rosette/safe
 
-(require rackunit rackunit/text-ui "ledger.rkt" "config.rkt" "periodic-payment.rkt")
+(require rackunit rackunit/text-ui "ledger.rkt" "config.rkt" "periodic-payment.rkt" "test-util.rkt")
 (provide (all-defined-out))
 
 ; define tempalte variables
@@ -90,22 +90,11 @@
 (define mock-eval-params (eval-params mock-algo-txn (list mock-algo-txn) mock-global-params 0))
 
 (define result-state
-       (txn-group-eval mock-state current-round (list mock-algo-txn) mock-global-params))
+  (txn-group-eval mock-state current-round (list mock-algo-txn) mock-global-params))
 
-(define periodic-payment-tests
-  (test-suite
-   "Test for periodic-payment"
-
-   (test-case
-       "test pp-naive-invariant"
-     (check-true (pp-naive-invariant mock-state init-amount start-round current-round test_period test_amt escrow-account)))
-
-   (test-case
-       "test pp-txn"     
-     (check-eq? (algo-balance result-state escrow-account) 3000))
-   ))
+(ledger-precondition? mock-state)
 
 (pp-naive-invariant result-state init-amount start-round (+ current-round 1) test_period test_amt escrow-account)
 
-(run-tests periodic-payment-tests)
+(algo-balance result-state escrow-account)
   

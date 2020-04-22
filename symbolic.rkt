@@ -210,3 +210,5 @@
     (let ([ag (total-algos state)])
       (assert (&& (> ag 0)
                   (<= ag algo-supply))))))
+
+

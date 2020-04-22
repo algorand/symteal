@@ -44,9 +44,10 @@
                                  tmpl_fee)))
 
 ; start round
-(define-symbolic start-round integer?)
-(assert (< start-round tmpl_timeout))
-(assert (>= start-round 0))
+(define start-round 0)
+;(define-symbolic start-round integer?)
+;(assert (< start-round tmpl_timeout))
+;(assert (>= start-round 0))
 
 ; initial balance of the escrow account
 (define init-amount
@@ -77,18 +78,23 @@
                       (&& (>= (algo-balance state e) (pp-lower-bound s₀ r₀ r p a))
                           (lease-valid? state e tmpl_lease (* (ceiling (/ (- r r₀) p)) p))))))))
 
-(define-symbolic current-round integer?)
-(assert (>= current-round start-round))
-(assert (<= current-round tmpl_timeout))
+(define current-round 1)
+;(define-symbolic current-round integer?)
+;(assert (>= current-round start-round))
+;(assert (<= current-round tmpl_timeout))
 
 (define sym-txn
   (gen-sym-txn (list)))
+
+; min_txn_fee min_balance max_txn_life zero_address
+(define mock-global-params
+  (global-params 0 0 1000 0))
 
 ; set the pre-condition
 (pp-naive-invariant sym-ledger-state init-amount start-round current-round tmpl_period tmpl_amt escrow-account)
 
 (define result-state
-  (txn-group-eval sym-ledger-state current-round (list sym-txn) (gen-sym-global-params)))
+  (txn-group-eval sym-ledger-state current-round (list sym-txn) mock-global-params))
 
 ; assert ledger precondition
 (ledger-precondition sym-ledger-state)
