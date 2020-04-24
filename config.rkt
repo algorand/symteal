@@ -2,6 +2,8 @@
 
 (provide (all-defined-out))
 
+(define bv64 (bitvector 64))
+
 (define universe-size 4)
 
 (define asset-capacity 2)
@@ -11,8 +13,11 @@
 ; than 4 txns in a group
 (define group-capacity 4)
 
-(define algo-supply 10000000000)
+(define algo-supply (bv 10000000000 bv64))
 
-(define asset-supply-cap 10000000000)
+(define asset-supply-cap (bv 10000000000 bv64))
 
-(define symteal-debug #f)
+(define ledger-debug #f)
+
+; for convenience
+(define bv->nat bitvector->natural)

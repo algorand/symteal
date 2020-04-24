@@ -1,13 +1,13 @@
 #lang rosette/safe
 
-(require "ledger.rkt")
+(require "ledger.rkt" "config.rkt")
 
 (provide periodic-payment)
 
 (define (periodic-payment tmpl_rcv tmpl_period tmpl_dur tmpl_amt tmpl_lease tmpl_timeout tmpl_fee)
   (list
    (txn TypeEnum)
-   (int 1)
+   (int (bv 1 bv64))
    (eq)
    (txn Fee)
    (int tmpl_fee)
@@ -27,7 +27,7 @@
    (txn FirstValid)
    (int tmpl_period)
    (mod)
-   (int 0)
+   (int (bv 0 bv64))
    (eq)
    (land)
    (txn LastValid)
@@ -52,7 +52,7 @@
    (ge)
    (land)
    (txn Amount)
-   (int 0)
+   (int (bv 0 bv64))
    (eq)
    (land) ; good close to and after timeout and 0 Amount
    (lor) ; normal payment or close

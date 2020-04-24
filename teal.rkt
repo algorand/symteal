@@ -1,14 +1,14 @@
 #lang rosette/safe
 
 (require rosette/lib/match)
-(require "syntax.rkt")
+(require "syntax.rkt" "config.rkt")
 
 (provide (all-from-out "syntax.rkt")
          (struct-out txn-content)
          (struct-out global-params)
          (struct-out eval-params)
          (struct-out context)
-         keccak256-hash eval-step teal-eval uint64-max) 
+         keccak256-hash eval-step teal-eval) 
 
 ;;; TEAL interpreter in Rosette
 
@@ -39,9 +39,6 @@
 ; 0 is uint
 ; 1 is bytes
 (struct stack-elmt (value type) #:transparent)
-
-; maximum uint64
-(define uint64-max 18446744073709551615)
 
 ;; helper functions:
 
@@ -107,7 +104,7 @@
 (define (op-err cxt)
   (add-err cxt 3)) ; error-code 3: error
 
-(define-symbolic keccak256-hash (~> integer? integer?))
+(define-symbolic keccak256-hash (~> bv64 bv64))
 
 ; keccak256
 (define (op-keccak256 cxt)
@@ -129,8 +126,8 @@
 ; +
 (define (op-plus cxt)
   (let ([op (lambda (cxt a b)
-              (let ([r (+ a b)])
-                (if (> r uint64-max)
+              (let ([r (bvadd a b)])
+                (if (bvult r a) ; bv overflow
                     (add-err cxt 4) ; error-code 4: + overflow
                     (update-stack cxt (cons (stack-elmt r 0)
                                             (cdr (cdr (context-stack cxt))))))))])
@@ -139,36 +136,39 @@
 ; -
 (define (op-minus cxt)
   (let ([op (lambda (cxt a b)
-              (if (< (- a b) 0)
-                    (add-err cxt 5) ; error-code 5: - results negative
-                    (update-stack cxt (cons (stack-elmt (- a b) 0)
-                                            (cdr (cdr (context-stack cxt)))))))])
+              (if (bvugt (bvsub a b) a)
+                  (add-err cxt 5) ; error-code 5: - results negative
+                  (update-stack cxt (cons (stack-elmt (bvsub a b) 0)
+                                          (cdr (cdr (context-stack cxt)))))))])
     (int-op cxt op)))
 
 ; /
 (define (op-div cxt)
   (let ([op (lambda (cxt a b)
-              (if (= b 0)
+              (if (bveq b (bv 0 bv64))
                   (add-err cxt 6) ; error-code 6: divided by 0      
-                  (update-stack cxt (cons (stack-elmt (/ a b) 0)
+                  (update-stack cxt (cons (stack-elmt (bvudiv a b) 0)
                                           (cdr (cdr (context-stack cxt)))))))])
     (int-op cxt op)))
 
 ; *
 (define (op-mul cxt)
   (let ([op (lambda (cxt a b)
-              (if (> (* a b) uint64-max)
-                  (add-err cxt 7) ; error-code 7: * overlflow
-                  (update-stack cxt (cons (stack-elmt (* a b) 0)
-                                          (cdr (cdr (context-stack cxt)))))))])
-    (int-op cxt op)))
+              (let ([v (bvmul a b)])
+                (if (and (not (bveq a (bv 0 bv64)))
+                         (not (bveq b (bv 0 bv64)))
+                         (not (bveq (bvudiv v a) b)))
+                    (add-err cxt 7) ; error-code 7: * overlflow
+                    (update-stack cxt (cons (stack-elmt v 0)
+                                            (cdr (cdr (context-stack cxt))))))))])
+        (int-op cxt op)))
 
 ; %
 (define (op-mod cxt)
   (let ([op (lambda (cxt a b)
-              (if (= b 0)
+              (if (bveq b (bv 0 bv64))
                   (add-err cxt 6) ; error-code 6: divided by 0
-                  (update-stack cxt (cons (stack-elmt (modulo a b) 0)
+                  (update-stack cxt (cons (stack-elmt (bvurem a b) 0)
                                           (cdr (cdr (context-stack cxt)))))))])
     (int-op cxt op)))
 
@@ -180,34 +180,33 @@
       [(teal-error msg) (add-err cxt msg)]
       [va (match b
             [(teal-error msg) (add-err cxt msg)]
-            [vb (let ([r (if (op va vb) 1 0)])
+            [vb (let ([r (if (op va vb) (bv 1 bv64) (bv 0 bv64))])
                   (update-stack cxt (cons (stack-elmt r 0)
                                           (cdr (cdr (context-stack cxt))))))])])))
 
 ; >
 (define (op-gt cxt)
-  (int-comp cxt >))
+  (int-comp cxt bvugt))
 
 ; <
 (define (op-lt cxt)
-  (int-comp cxt <))
+  (int-comp cxt bvult))
 
 ; >=
 (define (op-ge cxt)
-  (int-comp cxt >=))
+  (int-comp cxt bvuge))
 
 ; <=
 (define (op-le cxt)
-  (int-comp cxt <=))
+  (int-comp cxt bvule))
 
 ; and
-; one caveat is that the two operands should never be negative
 (define (op-and cxt)
-  (int-comp cxt (lambda (a b) (and (> a 0) (> b 0))))) 
+  (int-comp cxt (lambda (a b) (and (bvugt a (bv 0 bv64)) (bvugt b (bv 0 bv64)))))) 
 
 ; or
 (define (op-or cxt)
-  (int-comp cxt (lambda (a b) (or (> a 0) (> b 0)))))        
+  (int-comp cxt (lambda (a b) (or (bvugt a (bv 0 bv64)) (bvugt b (bv 0 bv64))))))       
 
 ; compare bytes
 (define (bytes-comp cxt op)
@@ -217,9 +216,9 @@
       [(teal-error msg) (add-err cxt msg)]
       [va (match b
             [(teal-error msg) (add-err cxt msg)]
-            [vb (let ([r (if (op va vb) 1 0)])
-    (update-stack cxt (cons (stack-elmt r 0)
-                            (cdr (cdr (context-stack cxt))))))])])))
+            [vb (let ([r (if (op va vb) (bv 1 bv64) (bv 0 bv64))])
+                  (update-stack cxt (cons (stack-elmt r 0)
+                                          (cdr (cdr (context-stack cxt))))))])])))
 
 ; ==
 (define (op-eq cxt)
@@ -227,8 +226,8 @@
         [tb (stack-elmt-type (car (cdr (context-stack cxt))))])
     (if (= ta tb)
         (if (= ta 1)
-            (bytes-comp cxt =)
-            (int-comp cxt =))
+            (bytes-comp cxt bveq)
+            (int-comp cxt bveq))
         (add-err cxt 8)))) ; error-code 8: compare values in different types
 
 ; neq
@@ -238,7 +237,7 @@
     (if (= ta tb)
         (if (= ta 1)
             (bytes-comp cxt (lambda (a b) (not (bveq a b))))
-            (int-comp cxt (lambda (a b) (not (= a b)))))
+            (int-comp cxt (lambda (a b) (not (bveq a b)))))
         (add-err cxt 8)))) ; error-code 8: compare values in different types
 
 ; !
@@ -246,11 +245,11 @@
   (let ([a (top-uint cxt)])
     (match a
       [(teal-error msg) (add-err cxt msg)]
-      [va (if (= a 0)
-        (update-stack cxt
-                      (cons (stack-elmt 1 0) (cdr (context-stack cxt))))
-        (update-stack cxt
-                      (cons (stack-elmt 0 0) (cdr (context-stack cxt)))))])))
+      [va (if (bveq a (bv 0 bv64))
+              (update-stack cxt
+                            (cons (stack-elmt (bv 1 bv64) 0) (cdr (context-stack cxt))))
+              (update-stack cxt
+                            (cons (stack-elmt (bv 0 bv64) 0) (cdr (context-stack cxt)))))])))
 
 ; txn
 (define (op-txn cxt idx)
@@ -307,7 +306,7 @@
       [1 (push-int cxt (global-params-min_balance global))]
       [2 (push-int cxt (global-params-max_txn_life global))]
       [3 (push-bytes cxt (global-params-zero_address global))]
-      [4 (push-int cxt (length (eval-params-txn-group (context-eval-params cxt))))]))) 
+      [4 (push-int cxt (bv (length (eval-params-txn-group (context-eval-params cxt))) bv64))]))) 
  
 ; update pc
 (define (update-pc cxt new-pc)
@@ -327,7 +326,7 @@
     (match a
       [(teal-error msg) (add-err cxt msg)]
       [va
-       (if (= a 0)
+       (if (bveq a (bv 0 bv64))
            (pc-increment (update-stack cxt (cdr (context-stack cxt)))) ;pop if zero
            (let ([new-pc (+ (context-pc cxt) offset)])
              (if (>= new-pc (length (context-program cxt)))
@@ -444,6 +443,6 @@
       [(> (length (context-stack result)) 1) #f]
       [(= (length (context-stack result)) 0) #f]
       [(= (stack-elmt-type (car (context-stack result))) 1) #f]
-      [(> (stack-elmt-value (car (context-stack result))) 0) #t]
+      [(bvugt (stack-elmt-value (car (context-stack result))) (bv 0 bv64)) #t]
       [else #f])))
 

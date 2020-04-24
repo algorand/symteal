@@ -7,132 +7,121 @@
 
 ; sender
 (define (sym-sender)
-  (define-symbolic* sender integer?)
-  (assert (> sender 0))
-  (assert (< sender universe-size))
+  (define-symbolic* sender bv64)
+  (assert (< (bv->nat sender) universe-size))
   sender)
 
 ; fee
 (define (sym-fee)
-  (define-symbolic* fee integer?)
-  (assert (>= fee 0))
+  (define-symbolic* fee bv64)
   fee)
 
 ; first valid
 (define (sym-fv)
-  (define-symbolic* first-valid integer?)
-  (assert (>= first-valid 0))
+  (define-symbolic* first-valid bv64)
   first-valid)
 
 ; first valid time
 (define (sym-fvt)
-  (define-symbolic* first-valid-time integer?)
+  (define-symbolic* first-valid-time bv64)
   first-valid-time)
 
 ; last valid
 (define (sym-lv)
-  (define-symbolic* last-valid integer?)
-  (assert (>= last-valid 0))
+  (define-symbolic* last-valid bv64)
   last-valid)
 
 ; note
 (define (sym-note)
-  (define-symbolic* note integer?)
+  (define-symbolic* note bv64)
   note)
 
 ; lease
 (define (sym-lease)
-  (define-symbolic* lease integer?)
+  (define-symbolic* lease bv64)
   lease)
 
 ; receiver
 (define (sym-receiver)
-  (define-symbolic* receiver integer?)
-  (assert (> receiver 0)) ; zero-address is special
-  (assert (< receiver universe-size))
+  (define-symbolic* receiver bv64)
+  (assert (< (bv->nat receiver) universe-size))
   receiver)
 
 ; amount
 (define (sym-amount)
-  (define-symbolic* amount integer?)
-  (assert (>= amount 0)) ; zero-address is special
-  (assert (< amount uint64-max))
+  (define-symbolic* amount bv64)
   amount)
 
 ; close remainder to
 (define (sym-crt)
-  (define-symbolic* close-remainder-to integer?)
+  (define-symbolic* close-remainder-to bv64)
   close-remainder-to)
 
 ; vote pk
 (define (sym-vpk)
-  (define-symbolic* vote-pk integer?)
+  (define-symbolic* vote-pk bv64)
   vote-pk)
 
 ; selection pk
 (define (sym-spk)
-  (define-symbolic* selection-pk integer?)
+  (define-symbolic* selection-pk bv64)
   selection-pk)
 
 ; vote first
 (define (sym-vf)
-  (define-symbolic* vote-first integer?)
+  (define-symbolic* vote-first bv64)
   vote-first)
 
 ; vote last
 (define (sym-vl)
-  (define-symbolic* vote-last integer?)
+  (define-symbolic* vote-last bv64)
   vote-last)
 
 ; vote key dilution
 (define (sym-vkd)
-  (define-symbolic* vote-key-delution integer?)
+  (define-symbolic* vote-key-delution bv64)
   vote-key-delution)
 
 ; type
 (define (sym-type)
-  (define-symbolic* type integer?)
+  (define-symbolic* type bv64)
   type)
 
 ; type enum
 (define (sym-te)
-  (define-symbolic* type-enum integer?)
+  (define-symbolic* type-enum bv64)
   type-enum)
 
 ; xfer asset
 (define (sym-xa)
-  (define-symbolic* xfer-asset integer?)
+  (define-symbolic* xfer-asset bv64)
   xfer-asset)
 
 ; asset amount
 (define (sym-aa)
-  (define-symbolic* asset-amount integer?)
-  (assert (>= asset-amount 0))
-  (assert (< asset-amount uint64-max))
+  (define-symbolic* asset-amount bv64)
   asset-amount)
 
 ; asset sender
 (define (sym-as)
-  (define-symbolic* asset-sender integer?)
-  (assert (> asset-sender 0)) ; zero address is special
-  (assert (< asset-sender universe-size))
+  (define-symbolic* asset-sender bv64)
+  (assert (< (bv->nat asset-sender) universe-size))
   asset-sender)
 
 ; asset receiver
 (define (sym-ar)
-  (define-symbolic* asset-receiver integer?)
-  (assert (> asset-receiver 0)) ; zero address is special
-  (assert (< asset-receiver universe-size))
+  (define-symbolic* asset-receiver bv64)
+  (assert (< (bv->nat asset-receiver) universe-size))
   asset-receiver)
 
 ; asset close to
 (define (sym-act)
-  (define-symbolic* asset-close-to integer?)
+  (define-symbolic* asset-close-to bv64)
   asset-close-to)
 
 ; tx id
 (define (sym-tid)
-  (define-symbolic* tx-id integer?)
+  (define-symbolic* tx-id bv64)
   tx-id)
 
 ; generate a symbolic txn
@@ -144,14 +133,12 @@
 
 ; algo balance
 (define (sym-algo-balance)
-  (define-symbolic* algo-balance integer?)
-  (assert (>= algo-balance 0))
+  (define-symbolic* algo-balance bv64)
   algo-balance)
 
 ; asset balance
 (define (sym-asset-balance)
-  (define-symbolic* asset-balance integer?)
-  (assert (>= asset-balance 0))
+  (define-symbolic* asset-balance bv64)
   asset-balance)
 
 ; this is safe :)
@@ -173,24 +160,24 @@
 
 ; generate symbolic global params
 (define (gen-sym-global-params)
-  (define-symbolic* min-txn-fee integer?)
-  (define-symbolic* min-balance integer?)
-  (define-symbolic* max-txn-life integer?)
-  (define-symbolic* zero-address integer?)
-  (assert (&& (>= zero-address 0)
-              (< zero-address universe-size)))
+  (define-symbolic* min-txn-fee bv64)
+  (define-symbolic* min-balance bv64)
+  (define-symbolic* max-txn-life bv64)
+  (define-symbolic* zero-address bv64)
+  (assert (< (bv->nat zero-address) universe-size))
   (global-params min-txn-fee min-balance max-txn-life zero-address))
 
 ; generate symbolic round number
 (define (gen-sym-round)
-  (define-symbolic* current-round integer?)
+  (define-symbolic* current-round bv64)
   current-round)
 
 ; generate symbolic lease
 (define (gen-sym-lease)
-  (define-symbolic* lease-sender integer?)
-  (define-symbolic* lease-value integer?)
-  (define-symbolic* lease-last-valid integer?)
+  (define-symbolic* lease-sender bv64)
+  (define-symbolic* lease-value bv64)
+  (define-symbolic* lease-last-valid bv64)
+  (assert (< (bv->nat lease-sender) universe-size))
   (list lease-sender lease-value lease-last-valid))
 
 ; generate symbolic ledger state
@@ -201,6 +188,7 @@
 ; general precondition of ledger state
 ; total algobalance is in (0, algosupply]
 ; total assetbalance is in (0, asset-supply-cap]
+; TODO: need to be revisited for bitvector
 (define (ledger-precondition state)
   (begin
     (r:for ([i (r:build-list asset-capacity (λ (e) e))])
@@ -210,5 +198,3 @@
     (let ([ag (total-algos state)])
       (assert (&& (> ag 0)
                   (<= ag algo-supply))))))
-
-

@@ -34,10 +34,10 @@
                     test_fee))
 
 (define mock-state
-  (ledger-state (list (account-state 0 '(0 0 0) '())                    ;accounts
-                      (account-state 4500 '(5000000 5000000 1000000) pp-program)
-                      (account-state 8000000 '(8000000 8000000 8000000) '())
-                      (account-state 1000 '(1000 3000000 4000000) '()))
+  (ledger-state (list (account-state 0 '(0 0) '())                    ;accounts
+                      (account-state 4500 '(5000000 5000000) pp-program)
+                      (account-state 8000000 '(8000000 8000000) '())
+                      (account-state 1000 '(1000 3000000) '()))
                 '((2 666 200)
                   (1 55 200))))
 
@@ -92,9 +92,13 @@
 (define result-state
   (txn-group-eval mock-state current-round (list mock-algo-txn) mock-global-params))
 
-(ledger-precondition? mock-state)
+(pp-naive-invariant mock-state init-amount start-round current-round test_period test_amt escrow-account)
+
+(print result-state)
 
 (pp-naive-invariant result-state init-amount start-round (+ current-round 1) test_period test_amt escrow-account)
+
+(list init-amount start-round current-round test_period test_amt escrow-account)
 
 (algo-balance result-state escrow-account)
   

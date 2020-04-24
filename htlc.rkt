@@ -1,6 +1,6 @@
 #lang rosette/safe
 
-(require "teal.rkt")
+(require "teal.rkt" "config.rkt")
 
 (provide htlc-contract)
 
@@ -10,7 +10,7 @@
    (int tmpl_fee)
    (le)
    (txn 16) ; TypeEnum
-   (int 1)
+   (int (bv 1 bv64))
    (eq)
    (land)
    (txn 7) ; Receiver
@@ -18,7 +18,7 @@
    (eq)
    (land)
    (txn 8) ; Amount
-   (int 0)
+   (int (bv 0 bv64))
    (eq)
    (land)
    (txn 9) ; CloseRemainderTo
