@@ -21,3 +21,6 @@
 
 ; for convenience
 (define bv->nat bitvector->natural)
+
+(define (uint v)
+  (bv v bv64))
