@@ -4,6 +4,7 @@
          "config.rkt" "util.rkt" rosette/solver/smt/boolector)
 
 ; TODO: fix boolector problem
+;(current-bitwidth 64)
 ;(current-solver (boolector))
 
 ;  define template variables

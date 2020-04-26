@@ -1,51 +1,51 @@
 #lang rosette/safe
 
-(require "syntax.rkt" "teal.rkt" "symbolic.rkt")
+(require "syntax.rkt" "teal.rkt" "symbolic.rkt" "config.rkt")
 
 ;  define template variables
 ;  - tmpl_rcv1: the first recipient in the split account
 ;(define tmpl_rcv1 0)
-(define-symbolic tmpl_rcv1 integer?)
+(define-symbolic tmpl_rcv1 bv64)
 
 ;  - tmpl_rcv2: the second recipient in the split account
 ;(define tmpl_rcv2 0)
-(define-symbolic tmpl_rcv2 integer?)
+(define-symbolic tmpl_rcv2 bv64)
 
 ;  - tmpl_rat1: fraction of money to be paid to the first recipient
 ;(define tmpl_rat1 67415691913592808)
-(define-symbolic tmpl_rat1 integer?)
+(define-symbolic tmpl_rat1 bv64)
 
 ;  - tmpl_rat2: fraction of money to be paid to the second recipient
 ;(define tmpl_rat2 22560556332927)
-(define-symbolic tmpl_rat2 integer?)
+(define-symbolic tmpl_rat2 bv64)
 
 ;  - tmpl_minpay: minimum amount to be paid out of the account
 ;(define tmpl_minpay 0)
-(define-symbolic tmpl_minpay integer?)
+(define-symbolic tmpl_minpay bv64)
 
 ;  - tmpl_timeout: the round at which the account expires
 ;(define tmpl_timeout 5000)
-(define-symbolic tmpl_timeout integer?)
+(define-symbolic tmpl_timeout bv64)
 
 ;  - tmpl_own: the address to refund funds to on timeout
 ;(define tmpl_own 22)
-(define-symbolic tmpl_own integer?)
+(define-symbolic tmpl_own bv64)
 
 ;  - tmpl_fee: half of the maximum fee used by each split forwarding group transaction 
 ;(define tmpl_fee 0)
-(define-symbolic tmpl_fee integer?)
+(define-symbolic tmpl_fee bv64)
 
 (define split-contract
   (list
    (txn 16) ; TypeEnum
-   (int 1)
+   (int (uint 1))
    (eq)
    (txn 1) ; Fee
    (int tmpl_fee)
    (le)
    (land)
    (global 4) ; GroupSize
-   (int 2)
+   (int (uint 2))
    (eq)
    (bnz 18) ; jump to (gtxn 0 sender)
    (txn 9) ; CloseRemainderTo
@@ -56,14 +56,14 @@
    (eq)
    (land)
    (txn 8) ; Amount
-   (int 0)
+   (int (uint 0))
    (eq)
    (land)
    (txn 2) ; FirstValid
    (int tmpl_timeout)
    (gt)
    (land)
-   (int 1)
+   (int (uint 1))
    (bnz 28) ; jump to the last instruction
    (gtxn 0 0) ; Sender
    (gtxn 1 0) ; Sender
@@ -116,7 +116,7 @@
   (take (gen-sym-txns-with-indices) group-size))
 
 (define mock-global-params
-  (global-params 1000 1000 1000 0))
+  (global-params (uint 1000) (uint 1000) (uint 1000) (uint 0)))
 
 (define (mock-eval-params txn txn-group i)
   (eval-params txn txn-group mock-global-params i))

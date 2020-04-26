@@ -6,6 +6,8 @@
 
 (define universe-size 4)
 
+(define universe-size-bv (bv universe-size bv64))
+
 (define asset-capacity 2)
 
 ; the actual algorand group capacity is 16, use 4 here for performance

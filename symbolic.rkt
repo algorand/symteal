@@ -8,7 +8,7 @@
 ; sender
 (define (sym-sender)
   (define-symbolic* sender bv64)
-  (assert (< (bv->nat sender) universe-size))
+  (assert (bvult sender universe-size-bv))
   sender)
 
 ; fee
@@ -44,7 +44,7 @@
 ; receiver
 (define (sym-receiver)
   (define-symbolic* receiver bv64)
-  (assert (< (bv->nat receiver) universe-size))
+  (assert (bvult receiver universe-size-bv))
   receiver)
 
 ; amount
@@ -105,13 +105,13 @@
 ; asset sender
 (define (sym-as)
   (define-symbolic* asset-sender bv64)
-  (assert (< (bv->nat asset-sender) universe-size))
+  (assert (bvult asset-sender universe-size-bv))
   asset-sender)
 
 ; asset receiver
 (define (sym-ar)
   (define-symbolic* asset-receiver bv64)
-  (assert (< (bv->nat asset-receiver) universe-size))
+  (assert (bvult asset-receiver universe-size-bv))
   asset-receiver)
 
 ; asset close to
@@ -164,7 +164,7 @@
   (define-symbolic* min-balance bv64)
   (define-symbolic* max-txn-life bv64)
   (define-symbolic* zero-address bv64)
-  (assert (< (bv->nat zero-address) universe-size))
+  (assert (bvult zero-address universe-size-bv))
   (global-params min-txn-fee min-balance max-txn-life zero-address))
 
 ; generate symbolic round number
@@ -177,7 +177,7 @@
   (define-symbolic* lease-sender bv64)
   (define-symbolic* lease-value bv64)
   (define-symbolic* lease-last-valid bv64)
-  (assert (< (bv->nat lease-sender) universe-size))
+  (assert (bvult lease-sender universe-size))
   (list lease-sender lease-value lease-last-valid))
 
 ; generate symbolic ledger state
@@ -192,9 +192,5 @@
 (define (ledger-precondition state)
   (begin
     (r:for ([i (r:build-list asset-capacity (λ (e) e))])
-           (let ([as (total-asset state i)])
-             (assert (&& (> as 0)
-                         (<= as asset-supply-cap)))))
-    (let ([ag (total-algos state)])
-      (assert (&& (> ag 0)
-                  (<= ag algo-supply))))))
+           (assert (total-asset-le? state i asset-supply-cap)))
+    (assert (total-algo-le? state algo-supply))))

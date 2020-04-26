@@ -28,18 +28,24 @@
 ; leases: list of leases
 (struct ledger-state (accounts leases)  #:transparent)
 
+; account: bv64
 (define (state-of-account state account)
   (list-ref (ledger-state-accounts state) (bv->nat account)))
 
 ; algo balance of an account
+; account: bv64
 (define (algo-balance state account)
   (account-state-balance (state-of-account state account)))
 
 ; asset balance of an account's certain asset
+; account: bv64
+; asset: bv64
 (define (asset-balance state account asset)
   (list-ref (account-state-assets (state-of-account state account)) (bv->nat asset)))
 
 ; update algo balance with delta
+; account: bv64
+; delta: bv64
 (define (update-balance state account delta)
   (ledger-state (list-set (ledger-state-accounts state)
                           (bv->nat account)
@@ -50,6 +56,9 @@
                 (ledger-state-leases state)))
 
 ; update asset balance with delta
+; account: bv64
+; asset: bv64
+; delta: bv64
 (define (update-asset state account asset delta)
   (ledger-state (list-set (ledger-state-accounts state)
                           (bv->nat account)
@@ -219,18 +228,48 @@
   (let ([result (txn-group-eval-with-error state current-round txn-group 0 global)])
     (if result result state))) ; roll-back if evaluate to #f
 
-; computing total algos
+; check whether total algo is bounded by `upper-bound`
+(define (total-algo-le? state upper-bound)
+  (define accounts (ledger-state-accounts state))
+  (define len (length accounts))
+  (let loop ([i 0] [xs accounts] [sum (uint 0)])
+    (cond
+      [(bvugt sum upper-bound) #f]
+      [(= i len) #t]
+      [else (let ([a (bvadd sum (account-state-balance (car xs)))])
+              (if (bvult a sum) ; overflow
+                  #f
+                  (loop (add1 i) (cdr xs) a)))])))
+
+; check whether an asset's total supply is bounded by `upper-bound`
+; asset: integer?
+; upper-bound: bv64
+(define (total-asset-le? state asset upper-bound)
+  (define accounts (ledger-state-accounts state))
+  (define len (length accounts))
+  (let loop ([i 0] [xs accounts] [sum (uint 0)])
+    (cond
+      [(bvugt sum upper-bound) #f]
+      [(= i len) #t]
+      [else (let ([a (bvadd sum (list-ref (account-state-assets (car xs)) asset))])
+              (if (bvult a sum) ; overflow
+                  #f
+                  (loop (add1 i) (cdr xs) a)))])))
+                    
+; computing total algos (could overflow)
 (define (total-algos state)
-  (foldl + 0
+  (foldl bvadd (uint 0)
          (map account-state-balance (ledger-state-accounts state))))
 
-; computing total supply of a particular asset
+; computing total supply of a particular asset (could overflow)
+; asset: integer?
 (define (total-asset state asset)
-  (foldl + 0
+  (foldl bvadd (uint 0)
          (map (λ (ac) (list-ref (account-state-assets ac)
-                                (bv->nat asset)))
+                                 asset))
               (ledger-state-accounts state))))
 
+; account: integer?
 (define (set-program state account program)
   (ledger-state (list-set (ledger-state-accounts state)
                           account
