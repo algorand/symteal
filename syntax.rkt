@@ -1,5 +1,5 @@
 #lang rosette/safe
-
+(require rosette/lib/match)
 (provide (all-defined-out))
 
 ;;; Arithmetic
@@ -112,10 +112,14 @@
     ...
     [else e2 ...]))
 
-; add list-set to rosette/safe
-(define (list-set l p e)
-    (let-values ([(a b) (split-at l p)])
-      (append a (cons e (cdr b)))))
+(require (only-in racket
+                  [build-list r:build-list]))
+
+(define (list-set lst idx val)
+    (for/all ([lst lst])
+      (map (lambda (i v) (if (= idx i) val v))
+           (r:build-list (length lst) identity)
+           lst)))
 
 ; decode error code to error message
 (define (decode-error error-code)
