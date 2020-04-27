@@ -81,7 +81,8 @@
 
 ; move algo
 (define (algo-move state zero-address sender receiver close fee amount)
-  (if (bvult (algo-balance state sender) (bvadd amount fee))
+  (if (or (bvult (bvadd amount fee) amount) ; overflow
+          (bvult (algo-balance state sender) (bvadd amount fee)))
       #f ; move didn't happen if sender balance cannot afford amount plus fee
       (if (bveq zero-address close)
           (let* ([state-1 (update-balance state sender (bvneg (bvadd amount fee)))]
